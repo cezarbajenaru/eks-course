@@ -380,30 +380,30 @@ CloudController manager
 	Service controller creates, updates and deletes cloud provider load balancer
 
 High level overview:
-                          ┌────────────────────────────┐
-                          │        Kubernetes          │
-                          │       Control Plane        │
-                          └────────────────────────────┘
-                                      │
-                                      │ (internal cluster communication)
-                                      ▼
+```text
+┌────────────────────────────┐
+│        Kubernetes          │
+│       Control Plane        │
+└────────────────────────────┘
+            │
+            │ (internal cluster communication)
+            ▼
 ┌────────────────────────────┐    ┌────────────────────────────┐
 │        API Server          │◄──►│ Cloud Controller Manager   │
 │  (handles kubectl + API)   │    │  (CCM)                     │
 └────────────────────────────┘    └────────────────────────────┘
-                                          │
-                                          │ (calls cloud provider API)
-                                          ▼
-                          ┌──────────────────────────────────┐
-                          │     Cloud Provider Infrastructure│
-                          │  (AWS, GCP, Azure, etc.)         │
-                          │                                  │
-                          │  ├── Compute (EC2, GCE, VM)      │
-                          │  ├── Load Balancers (ELB/NLB)    │
-                          │  ├── Storage (EBS, PD, Disks)    │
-                          │  └── Networking (Routes, VPCs)   │
-                          └──────────────────────────────────┘
-
+                │
+                │ (calls cloud provider API)
+                ▼
+┌──────────────────────────────────┐
+│     Cloud Provider Infrastructure│
+│  (AWS, GCP, Azure, etc.)         │
+│                                  │
+│  ├── Compute (EC2, GCE, VM)      │
+│  ├── Load Balancers (ELB/NLB)    │
+│  ├── Storage (EBS, PD, Disks)    │
+│  └── Networking (Routes, VPCs)   │
+└──────────────────────────────────┘
 
 **Kubelet** agent:  it **communicates with the API server**, gets the desired Pod specs, and ensures those containers are running using the container runtime (like containerd or CRI-O).
 kubelet is the primary node agent in Kubernetes
