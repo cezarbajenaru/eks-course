@@ -523,7 +523,7 @@ CLI get NAT gateways
     aws ec2 describe-nat-gateways --region us-east-2 --filter "Name=vpc-id,Values=vpc-0aae990c4109f5877" \
     --query "NatGateways[].{ID:NatGatewayId,Subnet:SubnetId,State:State}"
 
-
+```
 
 
 
@@ -707,6 +707,7 @@ NodePort
 	Every service has it;s own port
 		Cluster IP service port : 80
 	Diagram overvirew:
+```text
 ╔══════════════════════════════════════════╗
 ║           Kubernetes Cluster             
 ║──────────────────────────────────────────
@@ -727,8 +728,9 @@ NodePort
 ║        │   └─ Container (sidecar)        
 ║        │                                 
 ║        └─ Service                        
-║            (ClusterIP (virtual IP only for internal cluster communication, NodePort, LB)     
+║            (ClusterIP / NodePort / LB – internal + external communication)
 ╚══════════════════════════════════════════╝
+```
 
 Kubernetes cluster:
 	Worker Node
@@ -805,15 +807,19 @@ kubectl get svc
 minikube ip # to get the local minikube ip where the cluster is running
 minikube service runningpodv1 # because of port forwarding in Win11, we create a tunnel for service that browser can use
 
+```text
 ┌───────────┬──────────┬─────────────┬───────────────────────────┐
 │ NAMESPACE │   NAME   │ TARGET PORT │            URL            │
 ├───────────┼──────────┼─────────────┼───────────────────────────┤
 │ default   │ nginxpod │ 80          │ http://192.168.49.2:30381 │
 └───────────┴──────────┴─────────────┴───────────────────────────┘
-🏃  Starting tunnel for service nginxpod./┌───────────┬──────────
+🏃  Starting tunnel for service nginxpod
+┌───────────┬──────────┬─────────────┬────────────────────────┐
 │ NAMESPACE │   NAME   │ TARGET PORT │          URL           │
 ├───────────┼──────────┼─────────────┼────────────────────────┤
 │ default   │ nginxpod │             │ http://127.0.0.1:34563 │
+└───────────┴──────────┴─────────────┴────────────────────────┘
+```
 
 - **`kubectl expose`** creates a Service object that maps the container’s internal port (80) to a node-level NodePort (for example 30381).
     
