@@ -1,3 +1,5 @@
+Written with my own hands, formatted by AI for speed
+
 1. Kubernetes Concepts
 
 Table of Contents
@@ -998,7 +1000,7 @@ minikube start -p myclustername
 kubectl config get-contexts
 kubectl config set-context contextname
 
-kubectl create dployment dploymentname --image=kodekloud/webapp-color
+kubectl create deployment dploymentname --image=kodekloud/webapp-color
 kubectl get deployments
 kubectl describe deployment my-first-deployment
 kubectl get rs
@@ -1030,13 +1032,23 @@ Update deployment Imperative way:
 kubectl get deployment deploymentname -o yaml
 
 # check container name in YAML file
-kubectl set image deployment/deploymentname containername=stacksimplify/kubenginx:2.0.0
+kubectl set image deployment/kubecolor-deployment containername=stacksimplify/kubenginx:2.0.0 # container name with kubectl describe pods | grep "Containers:"
+# it is good to annotate to see history in rollout
+kubectl annotate deployment kubecolor-deployment \ 
+kubernetes.io/change-cause="Updated to Juice Shop v1 for demo"  # if you do not annotate the change you will not see the change in rollout history
+kubectl annotate <resource-type>/<resource-name> <key>="<value>"
+
+kubectl rollout history deployment/kubecolor-deployment 
+
+
+
 kubectl rollout status deployment/my-first-deployment
 kubectl describe deployment my-first-deployment
 kubectl get rs
 kubectl get po
 kubectl rollout history deployment/deploymentname
 kubectl port-forward svc/kodecolor-imperative-deploy-service 8080:80 #WSL2 problem
+kubectl port-forward svc/kubecolor-deployment 9090:3000 # 9090 will be the targer for the browser and 3000 is the target for the container app
 
 
 ```
@@ -1045,7 +1057,9 @@ Edit the deployment Declarative way:
 
 ```
 # With kubectl edit you can get inside the declared YAML file in K8s
-kubectl edit deployment/my-first-deployment --record=true
+kubectl edit deployment/my-first-deployment
+# opens with VIM. kubectl edit is just for testing, should no be used in production. You do not have a version control of this and if you mess something up there will be no track of it.
+# kubectl rollout history deployment kubecolor-deployment  # If you use kubectl edit, the changes are not registered anythere, neither in rollouts
 
 # Change From 2.0.0
     spec:
@@ -1061,26 +1075,17 @@ kubectl edit deployment/my-first-deployment --record=true
         
 kubectl get deployment kodecolor-imperative-deploy -o yaml | grep name:  # to get container name where to insert the image
 
+# the trigger for the image replacement is the kubectl set image  command itself. 
 kubectl set image deployment/kodecolor-imperative-deploy webapp-color=stacksimplify/kubenginx:2.0.0
+# kubectl rollout is just a short log
 kubectl rollout status deployment/kodecolor-imperative-deploy
 
 
 
 ```
+If you did the annotations correct when if we hit:
 
-You can rename the context but you CANNOT rename the cluster name on the server that is defined in EKS,GKE,Minikube etc !!!
+kubectl rollout history resource/deploymentname  # you should see the numbers of revisions. Choose the suitable that we want to roll back to!!! Not the one you want to remove
 
+kubectl rollout history deployment/kubecolor-deployment # now you have rolled back to that particular state
 
-
-## Bonus for later
-
-If you want something more “real-app”:
-
-- `kodekloud/webapp-color` → shows random color-coded web pages (used in Kubernetes training).
-    
-- `jpetazzo/httpenv` → shows environment variables on a web page — perfect for studying ConfigMaps.
-    
-
-`kubectl run webapp --image=kodekloud/webapp-color --port=8080 kubectl expose pod webapp --type=NodePort --port=8080 minikube service webapp`
-
-Each container instance gets a random color — perfect for visualizing load balancing.
