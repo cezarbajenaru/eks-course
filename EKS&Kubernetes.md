@@ -1,5 +1,19 @@
 1. Kubernetes Concepts
 
+Table of Contents
+- Architecture
+- DevOps
+- Microservices
+- Docker
+- Kubernetes Intro
+- EKS commands and kubectl
+- Defining resources (Namespaces, Contexts)
+- Kubernetes PODs
+- Services and Networking
+- ReplicaSets
+- Deployments
+- Bonus for later
+
 Architecture
 
 1. AWS services Integration with EKS
@@ -186,8 +200,6 @@ That line literally says: _“Only accept tokens tied to Service Account `s3-wri
 - AWS IAM trusts the signature and matches the `sub` to the Service Account you allowed in the trust policy.
     
 
-
-✅ So to your question:  
 The tokens are **tied to Service Accounts because the JWT contains the SA name + namespace in its claims, and the signature ensures it can’t be faked.**
 
 
@@ -238,7 +250,7 @@ Docker Client:
 	Docker client can comunicate with more that one Daemon
 
 Docker Images:
-	An image is a read-only templace with instructions for creating a Docker image
+	An image is a read-only template with instructions for creating a Docker image
 	Docker images can be based on another image with additional customization (you can add to other images and make it your own custom)
 	We can connect a container to one or more networks, attach storage to it. 
 	When a container is removed, any changes to its state that are not stored will dissapear
@@ -712,13 +724,13 @@ NodePort
 ║           Kubernetes Cluster             
 ║──────────────────────────────────────────
 ║                                          
-║  🧠 Control Plane                        
+║  Control Plane                        
 ║   ├─ API Server                          
 ║   ├─ Controller Manager                  
 ║   ├─ Scheduler                           
 ║   └─ etcd                                
 ║                                          
-║  🖥️ Worker Node(s)                       
+║  Worker Node(s)                       
 ║   ├─ Kubelet                             
 ║   ├─ Kube Proxy                          
 ║   └─ Container Runtime (containerd)      
@@ -1071,4 +1083,4 @@ If you want something more “real-app”:
 
 `kubectl run webapp --image=kodekloud/webapp-color --port=8080 kubectl expose pod webapp --type=NodePort --port=8080 minikube service webapp`
 
-🎨 Each container instance gets a random color — perfect for visualizing load balancing.
+Each container instance gets a random color — perfect for visualizing load balancing.
