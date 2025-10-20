@@ -1089,3 +1089,31 @@ kubectl rollout history resource/deploymentname  # you should see the numbers of
 
 kubectl rollout history deployment/kubecolor-deployment # now you have rolled back to that particular state
 
+kubectl rollout undo deployment/kubecolor-deployment --to-revision=3 # you remove the current version and change to revision 3 / You cannot execute this commmand if there was no previous command to undo
+
+TO restart the while application:
+kubectl rollout restart deployment/deploymentname
+kubectl get pods
+
+Pausing and resuming deployments
+
+# If we want to make multiple deployments we can pause the deployment and make changes and resume
+
+kubectl rollout pause
+kubectl rollout resume
+
+kubectl delete deploy nameofdeploy
+kubectl delete svc svcname
+
+Kubernetes services
+
+Cluster IP - used for comunication inside the cluster # frontend to backend for example
+NodePort - Access apps outside of K8s using Worker node ports
+LoadBalancer - AWS elastic load balancer
+Intress - Advanced load balancer, SSL, etc de invatat
+externalName - To access externally hosted apps or databases inside you k8s cluster. DNS name  de invatat cum functioneaza
+
+
+
+
+
