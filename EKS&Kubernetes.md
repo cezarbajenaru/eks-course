@@ -88,6 +88,35 @@ Service discovery
 Distribuited Tracing 
 Canary Deployments
 
+NameSpaces:
+
+The `dev` and `prod` namespaces exist in the **same cluster** but manage **different sets of resources**.  
+> Resources in one namespace are not visible in the other.
+
+├── Namespace: dev
+│ ├── Deployment: web-app
+│ ├── Pod: web-app-123
+│ ├── Service: web-svc
+│ └── ConfigMap: app-config
+│
+└── Namespace: prod
+├── Deployment: web-app
+├── Pod: web-app-456
+├── Service: web-svc
+└── ConfigMap: app-config
+
+Clusters are **completely independent** of one another.  
+> Even if namespaces share the same name (e.g. `dev`), they belong to **different clusters** and cannot access each other's resources.
+
+├── Namespace: dev
+│ ├── Deployment: api-server
+│ └── Service: api-svc
+│
+└── Namespace: staging
+├── Deployment: web-ui
+└── Service: ui-svc
+
+
 OIDC - Open ID connect
 
 Humans have IAM accounts
@@ -215,7 +244,7 @@ you may see : ca.crt  namespace  token
 **For example this command :**
 **eksctl utils associate-iam-oidc-provider  # does not create pod tokens, instead it registers cluster OIDC endpoint in IAM so later when pods are created and present tokens, IAM knows how to validate them - This is a one setup of trust**
 **When is the OIDC JWT actually created?**
-**When a Pod is created, Kubernetes assigns it a Service Account ( default or custom )**
+**When a Pod is created, Kubernetes assigns it a Service Account ( default or custom )** # Never create a pod by itself - must create a daployment or whatever resource you want
 **The kubelet on the node automatically requests a token for that Service Account from the EKS control plane**
 **The token will be signed by the EKS OIDC provider -> It contains: service account name, namespace, audience, expiry**
 **The token is mounted inside the pod at : ls /var/run/secrets/kubernetes.io/serviceaccount/token**
@@ -1138,7 +1167,7 @@ metadata:
 spec:                 #defines behavior or configuration of this service
   type: NodePort       # can be Cluster IP(inside cluster comunication), NodePort(access from outsire the cluster - local using browser),Loadbalancer(cloud), external DNS name 
   selector:           
-    app: my-yaml-app-v1
+    app: my-yaml-app-v1  # api version keeps depending on what you want to build
   ports:
     - name: http # assign a name to a port for easy identify
       port: 80  #service port exposed outsite
@@ -1161,7 +1190,11 @@ Service port (virtual cluster-wide port)
    ▼
 Pod IP:targetPort (actual container inside the cluster)
 
+USING YAML files
 
+The context selector 
+
+kubectl config use-context  # context are a combination of cluster+user(credentials) + namespace - Only one cluster at a time!!! Namespaces can overlap multuple clusters and/or resources
 
 ```
 
