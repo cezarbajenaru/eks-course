@@ -25,6 +25,12 @@ Imperative:
 Declarative:
 	YALM&Kubectl ->  Pod, ReplicaSet, Deployment, Service
 
+Because Kubernetes resources are declarative and self-healing:
+A Pod will wait and retry until its referenced ConfigMap or Secret exists.
+A Service can exist before the Pods it selects — it just won’t have endpoints yet.
+A Deployment can create its ReplicaSet even before the Service exists — they’re loosely coupled via labels.
+
+
 CLI's:  AWS CLI - control multiple AWS services though command line and automate though scripts. Manages the cluster
 kubectl - manages the cluster and objects
 eksctl - manages the clusters and objects / create and delete clusters on AWS EKS, create Autoscale and delete node groups, create Fargate profiles.
@@ -1192,10 +1198,15 @@ Pod IP:targetPort (actual container inside the cluster)
 
 USING YAML files
 
-The context selector 
-
+The context selector before applying so you do not destroy some other cluster
+kubectl config current-context 
 kubectl config use-context  # context are a combination of cluster+user(credentials) + namespace - Only one cluster at a time!!! Namespaces can overlap multuple clusters and/or resources
 
+kubectl config create-context # if you need a new context - contexts are logical mappings or resources - just a saved connection profile inside your kube configuration -> When I use this context, talk to that cluster, as this user, in this namespace.
+kubectl config set-context   # With this you can set a context to another user and combine resources. A new context can map a resource like a cluster to a user and a namespace so you can let in someone else to work on that cluster - a context is just linking setting that already exist. 
+
+kubectl config use-context contextname # to switch to other context names
+kubectl create name-of-yaml.yaml
 ```
 
 
