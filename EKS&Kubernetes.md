@@ -29,6 +29,14 @@ Because Kubernetes resources are declarative and self-healing:
 A Pod will wait and retry until its referenced ConfigMap or Secret exists.
 A Service can exist before the Pods it selects — it just won’t have endpoints yet.
 A Deployment can create its ReplicaSet even before the Service exists — they’re loosely coupled via labels.
+Type	                                     Recommended order	Why  # the order of creation of resources
+Namespaces	                                🥇 First	Everything else lives inside them
+RBAC (Roles, RoleBindings, ServiceAccounts)	🥈 Second	Pods and controllers might need permissions
+ConfigMaps / Secrets	                    🥉 Third	Pods reference them
+Services / Deployments / StatefulSets	    🏗️ Fourth	Core workloads
+Ingress / NetworkPolicy	                     🕸️ Last	Depend on running Services and Pods
+
+You can apply them all at once — Kubernetes will eventually reconcile the correct state — but applying them in this logical order avoids transient “NotFound” warnings.
 
 
 CLI's:  AWS CLI - control multiple AWS services though command line and automate though scripts. Manages the cluster
@@ -1018,7 +1026,7 @@ kubectl get svc # to see if it got deleted
 
 
 Deployments:
-Deployments are a superset of replicas.
+Deployments are a superset of replica set. Replica set is a small subset of the deployment features
 You never need to create pods manually — **ReplicaSets and Deployments do it implicitly from the Pod template.**
 A **Deployment** is basically a **ReplicaSet manager** — it wraps ReplicaSets and adds **version control, rollout management, and rollback capabilities** on top of them.
 Whenever we create a deployment we rollout a replicaSet also
@@ -1206,7 +1214,24 @@ kubectl config create-context # if you need a new context - contexts are logical
 kubectl config set-context   # With this you can set a context to another user and combine resources. A new context can map a resource like a cluster to a user and a namespace so you can let in someone else to work on that cluster - a context is just linking setting that already exist. 
 
 kubectl config use-context contextname # to switch to other context names
-kubectl create name-of-yaml.yaml
+kubectl create name-of-yaml.yaml # this commands only creates new resources - does not update old ones
+kubectl apply -f name-of-yaml.yaml  # Updates existing resources
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-pod-nodeport-service 
+spec:
+  type: NodePort 
+  selector: #only to those puds under the selector the traffic will be routed!
+    app: myapp 
+  ports: 
+    - name: http
+      port: 80 # Service Port
+      targetPort: 80 # Container Port
+      nodePort: 31231 # NodePort
+
+
 ```
 
 
