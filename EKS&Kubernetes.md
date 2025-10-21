@@ -1113,6 +1113,26 @@ LoadBalancer - AWS elastic load balancer
 Intress - Advanced load balancer, SSL, etc de invatat
 externalName - To access externally hosted apps or databases inside you k8s cluster. DNS name  de invatat cum functioneaza
 
+YAML FILES -> The declarative way that is good for keepind track of versioning
+
+# the base definition of a resource in K8s
+Tipycal resources to be created: Pod, ReplicaSet, Deployment, Service
+```
+apiVersion: v3        # string
+kind: Pod             # string
+metadata:             # dicitonary - contains more pairs
+  name: my-yaml-pod
+  labels:
+    app: my-yaml-app-v1
+spec:
+  containers:
+    - name: my-app-containername  # the container name that is is used when setting the image in rollouts
+	  image: repo/imagename   # image name in dockerhub
+	  ports:
+	    - containerPort: 80
+
+
+```
 
 
 
