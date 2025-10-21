@@ -1118,7 +1118,7 @@ YAML FILES -> The declarative way that is good for keepind track of versioning
 # the base definition of a resource in K8s
 Tipycal resources to be created: Pod, ReplicaSet, Deployment, Service
 ```
-apiVersion: v3        # string
+apiVersion: v1        # string
 kind: Pod             # string
 metadata:             # dicitonary - contains more pairs
   name: my-yaml-pod
@@ -1130,6 +1130,37 @@ spec:
 	  image: repo/imagename   # image name in dockerhub
 	  ports:
 	    - containerPort: 80
+
+apiVersion: V1   # V1 is the core Kubernetes API for basic objects like pods, services, ConfigMaps ( deployments use V1 )
+kind: Service    #defines what type of resource you are creating
+metadata:
+  name: my-yaml-app-v1-service   # the unique name of your serrvice (can be annotations, labels, names)
+spec:                 #defines behavior or configuration of this service
+  type: NodePort       # can be Cluster IP(inside cluster comunication), NodePort(access from outsire the cluster - local using browser),Loadbalancer(cloud), external DNS name 
+  selector:           
+    app: my-yaml-app-v1
+  ports:
+    - name: http # assign a name to a port for easy identify
+      port: 80  #service port exposed outsite
+      targetPort: 80  # the container port targeted in the cluster and further into the pod ( where the container lives)
+      nodePort: 31231  #underneath the nodePort there is the above targetPort
+
+# pods forward all container data tot the cluster
+# all containers in the POD share the same IP # if the containers listens in port 80, the Pod itself also listens on 80
+# You do not need NAT or explicit port firwarding betweeen pods (k8s handles this through CNI - Container network interface)
+
+# A Pod runs containers and provides a network endpoint to access them from within the cluster
+User (your browser)
+   │
+   ▼
+<NodeIP>:nodePort (external entry on the node)
+   │
+   ▼
+Service port (virtual cluster-wide port)
+   │
+   ▼
+Pod IP:targetPort (actual container inside the cluster)
+
 
 
 ```
