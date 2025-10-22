@@ -1287,6 +1287,9 @@ The Deployment defines the Pod template, the ReplicaSet ensures Pods exist, the 
 template = Pod template
 It defines what each Pod should look like when the controller (Deployment or ReplicaSet) creates it.
 
+tier is not a Kubernetes object or isolation boundary — it’s just a label.
+But it’s incredibly useful as a logical grouping tag for your resources.
+
 
 
 
