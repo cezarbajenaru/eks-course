@@ -1173,7 +1173,7 @@ spec:
 	  image: repo/imagename   # image name in dockerhub
 	  ports:
 	    - containerPort: 80
-
+```
 apiVersion: V1   # V1 is the core Kubernetes API for basic objects like pods, services, ConfigMaps ( deployments use V1 )
 kind: Service    #defines what type of resource you are creating
 metadata:
@@ -1205,7 +1205,7 @@ Service port (virtual cluster-wide port)
 Pod IP:targetPort (actual container inside the cluster)
 
 USING YAML files
-
+```
 The context selector before applying so you do not destroy some other cluster
 kubectl config current-context 
 kubectl config use-context  # context are a combination of cluster+user(credentials) + namespace - Only one cluster at a time!!! Namespaces can overlap multuple clusters and/or resources
@@ -1232,7 +1232,61 @@ spec:
       nodePort: 31231 # NodePort
 
 
+How the app name gets declared from one script to another
+
+# Deployment (creates Pods)
+metadata:
+  name: myapp-deployment
+spec:
+  selector:
+    matchLabels:
+      app: myapp        # Must match Pod label
+  template:
+    metadata:
+      labels:
+        app: myapp      # Pods get this label
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-service
+spec:
+  selector:
+    app: myapp          # Must match Pod label again
+  ports:
+    - port: 80
+      targetPort: 80  # port inside container
+
 ```
+
+Deployment
+  ↓
+ReplicaSet
+  ↓
+Creates Pods using template:
+   - metadata.labels = app: myapp
+   - spec.containers[0].image = nginx:latest
+  ↓
+Service
+   - selector.app = myapp  (targets Pods)
+   - spec.ports:
+        - port: 80
+          targetPort: 80
+          nodePort: 31231 (if NodePort type)
+  ↓
+Ingress (optional)
+   - routes HTTP(S) traffic to Service
+   - spec.rules.host = myapp.example.com
+   - spec.backend.service.name = myapp-service
+
+
+
+The Deployment defines the Pod template, the ReplicaSet ensures Pods exist, the Service connects users to those Pods, and the Ingress (if used) exposes them externally
+
+template = Pod template
+It defines what each Pod should look like when the controller (Deployment or ReplicaSet) creates it.
+
 
 
 
