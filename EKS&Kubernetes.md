@@ -1317,9 +1317,74 @@ kubectl	get pods -o wide
 In the YAML files you have the namespace defined : default
 Run the YAML files that create the service account:
 
-ServiceAccount is another Kubernetes object that lives inside the cluster’s control plane, not in your nodes or containers.
+ServiceAccount is another Kubernetes ( or EKS ) object that lives inside the cluster’s control plane, not in your nodes or containers.
+A Service account is to a pod what a username is to a person. The pod authenticates to the API server
+
 
 EBS volumes 
+EBS provides block level storage volumes for use with EC2 and container instances
+We can mount these drives as devices on out EC2 and container instances
+EBS volumes that are attached to an EC2 persist independently from the life of the EC2 container instance
+We can dinamically change the config of a volume attached to an instance ( increase/decrease size etc ) - works for databases for short and long reads of service
+
+For Cluster IP service, the following will live inside :
+Storage class
+Persistent Volume Claim
+ConfigMap
+Env Variables
+Volumes
+Volume mounts
+Node port for local
+
+FOr User management we create a NodePort Service
+
+Node Port service
+Deployment
+Env variables 
+
+CSI drive: CSI stands for Container Storage Interface —
+a standard API that allows Kubernetes to talk to any storage backend (AWS, GCP, Ceph, etc.) through a plug-in driver.
+
+🧱 Pod is running
+
+```
+The EBS volume is attached and mounted to that node.
+The application writes data into /data, which goes to EBS.
+Pod dies / Node drained
+Kubernetes terminates the Pod.
+The EBS CSI driver detaches the volume from that EC2 node.
+Replica / new Pod scheduled
+The controller (Deployment, StatefulSet) spins up a new Pod (often on another node).
+The CSI driver sees that this Pod uses the same PVC.
+It attaches the same EBS volume to the new node.
+The volume is remounted inside the new Pod at /data.
+Application continues
+```
+
+The new Pod now sees all previous data — files, databases, etc. — intact.
+
+EBS volumes are ReadWriteOnce (RWO), meaning they can only be attached to one node at a time.
+So if you have multiple replicas, only one Pod can use that volume simultaneously.
+For shared access, you’d use EFS (Elastic File System) instead.
+The driver handles: AWS API calls: AttachVolume, DetachVolume, DeleteVolume
+Node mount paths and filesystem integrity
+The delay between Pod death and new Pod readiness = time for AWS to detach + attach (~5–20 seconds).
+
+Installing EBS CSI driver:
+Go to EKS cluster (name of your cluster) - Addons - EBS CSI driver -> Addon access is EKS Pod Identity -> Create recomended role ( sends you to IAM ) -> EKS pof Identity -> Create role  - Go to Roles and see what we created. Now we have Pod identity - must have Active status
+
+kubectl get pods -n namespacename
+You shold see ebs-csi in front of nodes
+
+DaemonSet is a controller that manages system-level Pods which run services on every node in the cluster
+kubectl get ds -n nameofnamespace  # this gets Daemonsets in the namespace
+With this command you are seeing real Pods that are running on your worker nodes, just like your own application Pods. The pods are system-level Pods, managed by DaemonSets
+
+A DaemonSet is a Kubernetes controller that ensures one Pod runs on every node (or on a selected subset of nodes).
+It’s used for workloads that need to:
+collect logs, metrics, or monitor nodes
+provide node-level system services
+mount or manage node-local storage or networking
 
 
 
