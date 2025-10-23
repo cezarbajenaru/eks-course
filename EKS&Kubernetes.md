@@ -1291,6 +1291,36 @@ tier is not a Kubernetes object or isolation boundary — it’s just a label.
 But it’s incredibly useful as a logical grouping tag for your resources.
 
 
+EKS
+How does a POD comunicate with other AWS services?
+PIA - Pod Identity Agent - go to addons and install pod identity agent
+
+You need a pod deployed in EKS, and assign an IAM role to it ( practically create a user with IAM permission to manage pod )
+0. We are going to create a pod identity assiciation - a simple CLI pod # the pod will run on each and every node on the cluster
+1. The IAM role will have read only permissions to S3 for example
+2. We are going to install PIM -> Then Create a service account for CLI Pod
+3. In which namespace the workload is running?
+
+You need to restart the pod in order for the permissions to take effect
+aws s3 list ( will work after pod restart )
+Eks pod identity association (PIA) works for Dynamo, EBS and other services
+
+Installing EKS PIA ( pod identity association ) 
+You practically create a pod inside all the worker nodes ( you can actually se a pod with a agent name when kubectl get pods -n namespace or kubectl get daemonset -n namespace )
+
+It is a Daemon that handles authentication of services and lives in a simple pod inside each worker node in the cluster
+kubectl get daemonset -n namespacename
+kubectl get pods -n kube-system
+eks-pod-identity-agent  will be present in the list - it runs on each k8s worker node after install
+kubectl	get pods -o wide
+
+In the YAML files you have the namespace defined : default
+Run the YAML files that create the service account:
+
+ServiceAccount is another Kubernetes object that lives inside the cluster’s control plane, not in your nodes or containers.
+
+EBS volumes 
+
 
 
 
