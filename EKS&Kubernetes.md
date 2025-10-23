@@ -1144,6 +1144,7 @@ Pausing and resuming deployments
 
 kubectl rollout pause
 kubectl rollout resume
+kubectl get endpoints myapp-service
 
 kubectl delete deploy nameofdeploy
 kubectl delete svc svcname
@@ -1385,6 +1386,9 @@ It’s used for workloads that need to:
 collect logs, metrics, or monitor nodes
 provide node-level system services
 mount or manage node-local storage or networking
+
+
+kubectl get endpoints myapp-service
 
 
 
