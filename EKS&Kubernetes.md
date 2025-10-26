@@ -1,3 +1,7 @@
+key info for this project: 
+https://calculator.aws/#/addService  # for cost calculation
+
+
 Written with my own hands, formatted by AI for speed
 
 1. Kubernetes Concepts
