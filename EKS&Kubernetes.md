@@ -1394,6 +1394,10 @@ mount or manage node-local storage or networking
 
 kubectl get endpoints myapp-service
 
+Terraform creation
+You use resource block if you are defining everything in main.tf  else: we use modules and we only create modules and call variables
 
-
+###########
+So in a modular layout you paste the VPC (template from terraform registry) in root module folder in main.tf, you take the values from an VPC template from module/vpc/main.tf, put them into a terraform.tfvars, and then write variables.tf for defining strings or whatever, then define the outputs.tf.
+###########
 
