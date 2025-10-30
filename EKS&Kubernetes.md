@@ -373,7 +373,7 @@ Automated rollouts and rollbacks
 Automatic bin packing
 Self-healing
 Secret and config management
-
+```
 Components:
 
 │
@@ -415,7 +415,7 @@ Components:
     ├── NAT Gateway (for private nodes)
     ├── Elastic Load Balancer (for Services of type LoadBalancer)
     └── Security Groups + Route Tables
-
+```
 THE MASTER NODE contains:
 Container Runtime (Docker)
 
