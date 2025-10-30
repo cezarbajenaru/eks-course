@@ -106,7 +106,7 @@ If you make any change to Kubernetes manifest and check that core it will be dep
 Service discovery
 Distribuited Tracing 
 Canary Deployments
-
+```
 NameSpaces:
 
 The `dev` and `prod` namespaces exist in the **same cluster** but manage **different sets of resources**.  
@@ -134,7 +134,7 @@ Clusters are **completely independent** of one another.
 └── Namespace: staging
 ├── Deployment: web-ui
 └── Service: ui-svc
-
+```
 
 OIDC - Open ID connect
 
