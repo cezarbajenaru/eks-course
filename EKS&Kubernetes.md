@@ -34,11 +34,11 @@ A Pod will wait and retry until its referenced ConfigMap or Secret exists.
 A Service can exist before the Pods it selects — it just won’t have endpoints yet.
 A Deployment can create its ReplicaSet even before the Service exists — they’re loosely coupled via labels.
 Type	                                     Recommended order	Why  # the order of creation of resources
-Namespaces	                                🥇 First	Everything else lives inside them
-RBAC (Roles, RoleBindings, ServiceAccounts)	🥈 Second	Pods and controllers might need permissions
-ConfigMaps / Secrets	                    🥉 Third	Pods reference them
-Services / Deployments / StatefulSets	    🏗️ Fourth	Core workloads
-Ingress / NetworkPolicy	                     🕸️ Last	Depend on running Services and Pods
+Namespaces	                                 First	Everything else lives inside them
+RBAC (Roles, RoleBindings, ServiceAccounts)	 Second	Pods and controllers might need permissions
+ConfigMaps / Secrets	                     Third	Pods reference them
+Services / Deployments / StatefulSets	     Fourth	Core workloads
+Ingress / NetworkPolicy	                      Last	Depend on running Services and Pods
 
 You can apply them all at once — Kubernetes will eventually reconcile the correct state — but applying them in this logical order avoids transient “NotFound” warnings.
 
