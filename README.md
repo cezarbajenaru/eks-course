@@ -1,0 +1,1 @@
+The purpose of the project is learning. Because defining infrastructure in a imperative way does not work in a team, I choose to do the whole course in a declarative way.
