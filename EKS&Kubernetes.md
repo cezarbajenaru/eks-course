@@ -1394,10 +1394,93 @@ mount or manage node-local storage or networking
 
 kubectl get endpoints myapp-service
 
-Terraform creation
-You use resource block if you are defining everything in main.tf  else: we use modules and we only create modules and call variables
+Terraform infra creation
+You use resource block if you are defining everything in main.tf  else: we use modules and we only create modules and call variables. We want something reusable and will choose modular version
+
+Each Terraform module as a function in a programming language.
+The child module (modules/vpc) defines how a VPC is created and what outputs it makes available.
+The root module (main.tf at the top level) is your main script — it can:
+Call the module (like calling a function)
+Read the module’s outputs
+Optionally decide which of those outputs to “show to the outside world”
 
 ###########
 So in a modular layout you paste the VPC (template from terraform registry) in root module folder in main.tf, you take the values from an VPC template from module/vpc/main.tf, put them into a terraform.tfvars, and then write variables.tf for defining strings or whatever, then define the outputs.tf.
 ###########
+The actual usage of modular layout in Terraform
+
+Get the pattern for the resource from Terraform registry, copy it and paste it in the project/module/main.tf
+
+Replace hardcoded values with var.nameofthevariable 
+Like this:
+From this:
+
+modules/vpc/main.tf
+```
+module "vpc" {
+  source = "terraform-aws-modules/vpc/aws"   #this ends up pulling from the public registry and downloads locally 
+
+  name = "my-vpc"
+  cidr = "10.0.0.0/16"
+
+  azs             = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+
+  enable_nat_gateway = true
+  enable_vpn_gateway = true
+
+  tags = {
+    Terraform = "true"
+    Environment = "dev"
+  }
+}
+```
+
+To this:
+modules/vpc/variables.tf
+```
+module "vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+
+  name = var.name
+  cidr = var.cidr
+
+  azs             = var.azs
+  private_subnets = var.private_subnets
+  public_subnets  = var.public_subnets
+
+  enable_nat_gateway = var.enable_nat_gateway
+  enable_vpn_gateway = var.enable_vpn_gateway
+
+  tags = var.tags
+}
+```
+Then define outputs:
+modules/vpc/outputs.tf
+Terraform registry -> https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest#output_default_vpc_cidr_block  Ctrl+F  and search out Outputs to scroll for full list
+The name of the output itself is given by you but the value must be linked to an existent resource in main.tf
+
+```
+output "vpc_name" {
+  value       = module.vpc.vpc_name
+description = "VPC for EKS project"
+}
+
+output "vpc_id" {   
+  value       = module.vpc.vpc_id
+  description = "The ID of the VPC"
+}
+```
+
+
+
+
+
+
+
+
+
+
+
 
