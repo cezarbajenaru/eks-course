@@ -1411,6 +1411,9 @@ The actual usage of modular layout in Terraform
 
 Get the pattern for the resource from Terraform registry, copy it and paste it in the project/module/main.tf
 
+For example:
+"name" and "cidr" are input variables(not names I come up with). Meaning name=var.vpc_cidr means input_variable = type_of_value.the_string_name_defined_in_tfvars
+
 Replace hardcoded values with var.nameofthevariable 
 Like this:
 From this:
