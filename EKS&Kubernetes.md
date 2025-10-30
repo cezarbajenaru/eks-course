@@ -1458,6 +1458,7 @@ module "vpc" {
 ```
 Then define outputs:
 modules/vpc/outputs.tf
+These outputs are exposed only to Terraform. If we want to expose the VPC ID for example in AWS CLI, we have to declare this output to root/outputs.tf also. The root is the orchestrator
 Terraform registry -> https://registry.terraform.io/modules/terraform-aws-modules/vpc/aws/latest#output_default_vpc_cidr_block  Ctrl+F  and search out Outputs to scroll for full list
 The name of the output itself is given by you but the value must be linked to an existent resource in main.tf
 
