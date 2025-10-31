@@ -1395,7 +1395,47 @@ mount or manage node-local storage or networking
 
 kubectl get endpoints myapp-service
 
-Terraform infra creation
+Terraform infra creation:
+
+```
+Module folder skeleton
+# modules/<name>/main.tf
+# resources or upstream registry module
+
+# modules/<name>/variables.tf
+variable "example" { type = string }
+
+# modules/<name>/outputs.tf
+output "example_out" { value = something }
+```
+```
+Root module call
+module "<name>" {
+  source = "./modules/<name>"
+  # map root vars to module vars (
+```
+```
+Pass outputs between modules
+module "b" {
+  source = "./modules/b"
+  from_a = module.a.example
+```
+```
+NAT/EIP pattern (choose one)
+# A) Let VPC module create EIPs
+vpc_reuse_nat_ips       = false
+vpc_external_nat_ip_ids = []
+
+# B) Reuse precreated EIPs
+resource "aws_eip" "nat" {
+  count  = var.vpc_single_nat_gateway ? 1 : length(var.vpc_azs)
+  domain = "vpc"  # provider v5+
+}
+
+vpc_reuse_nat_ips       = true
+vpc_external_nat_ip_ids = aws_eip.nat[*].allocation_id  # or .id if olders
+```
+
 You use resource block if you are defining everything in main.tf  else: we use modules and we only create modules and call variables. We want something reusable and will choose modular version
 
 Each Terraform module as a function in a programming language.
@@ -1404,6 +1444,28 @@ The root module (main.tf at the top level) is your main script — it can:
 Call the module (like calling a function)
 Read the module’s outputs
 Optionally decide which of those outputs to “show to the outside world”
+
+
+```
+They refer to different conceptual things:
+
+Name	Type	Meaning	Direction
+vpc_cidr	variable	the input value you provide to create the VPC	input → AWS
+vpc_cidr_block	output	the CIDR block AWS actually assigned (same value, but now known output)	output ← AWS
+
+In most cases, they’ll have identical values — but semantically they’re not the same thing:
+
+var.vpc_cidr = what you asked for
+
+vpc_cidr_block = what AWS created (and Terraform confirmed)
+
+In plain words: We tell Terraform: use this vpc_cidr to create the VPC.
+After creation, AWS gives us back a vpc_cidr_block.
+We pass that value up from the registry module → our wrapper -> the root output
+
+So yes, they represent the same network range,
+but they flow in opposite directions . vpc.cidr is input variable and vpc_cidr_block is output variable outputted by AWS back to Terraform
+```
 
 ###########
 So in a modular layout you paste the VPC (template from terraform registry) in root module folder in main.tf, you take the values from an VPC template from module/vpc/main.tf, put them into a terraform.tfvars, and then write variables.tf for defining strings or whatever, then define the outputs.tf.

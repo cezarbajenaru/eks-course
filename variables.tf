@@ -1,26 +1,16 @@
 #variables will be used here in order to leave the modules as clean and reusable as possible
 
-variable "vpc_cidr" {
-  description = "The CIDR block for the VPC"
-  type        = string
-  default     = "10.0.0.0/16"
-}
+variable "vpc_name" { type = string }
+variable "vpc_cidr" { type = string }
 
-variable "azs" {
-  description = "The availability zones for the VPC"
-  type        = list(string)
-  default     = ["eu-central-1a"]
-}
+variable "vpc_azs" { type = list(string) }
+variable "vpc_private_subnets" { type = list(string) }
+variable "vpc_public_subnets" { type = list(string) }
 
+variable "vpc_enable_vpn_gateway" { type = bool }
+variable "vpc_enable_nat_gateway" { type = bool }
+variable "vpc_single_nat_gateway" { type = bool }
+variable "vpc_reuse_nat_ips" { type = bool }
+variable "vpc_external_nat_ip_ids" { type = list(string) }
 
-variable "single_nat_gateway" {
-  description = "Whether to use a single NAT gateway"
-  type        = bool
-  default     = true
-}
-
-variable "cluster_name" {
-  description = "The name of the EKS cluster"
-  type        = string
-  default     = "my-cluster"
-}
+variable "vpc_tags" { type = map(string) }
