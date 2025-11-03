@@ -4,6 +4,46 @@ https://calculator.aws/#/addService  # for cost calculation
 
 Written with my own hands, formatted by AI for speed
 
+
+```
+
+VPC	Isolated network for all resources
+Subnets (public + private)	Public for ALB / NAT, private for EC2 or EKS
+Security Groups	Access control — ALB → EC2 → RDS
+VPC Endpoints	Internal AWS access (S3, CloudWatch, etc.) without Internet
+EKS (optional)	If project goal = WordPress on Kubernetes
+RDS	Managed MySQL database (instead of S3 for DB)
+S3	State + Media/backup storage
+IAM roles/policies	Access S3, CloudWatch, etc. securely
+The architecture of the end project
+              +-----------------------+
+              |     Route 53 (DNS)    |
+              +-----------+-----------+
+                          |
+                   +------+------+
+                   |  ALB (Public) |
+                   +------+------+
+                          |
+                 +--------v--------+
+                 | EC2 / EKS Nodes |
+                 | WordPress Pods  |
+                 +--------+--------+
+                          |
+                +---------v---------+
+                |  RDS (MySQL DB)   |
+                +-------------------+
+
+VPC (private + public subnets)
+|
++-- VPC Endpoints (S3, Logs, SSM, ECR)
+|
++-- S3 (state + media)
+|
++-- SG (allow ALB → EC2, EC2 → RDS)
+
+```
+
+
 1. Kubernetes Concepts
 
 Table of Contents
@@ -1351,7 +1391,7 @@ Env variables
 CSI drive: CSI stands for Container Storage Interface —
 a standard API that allows Kubernetes to talk to any storage backend (AWS, GCP, Ceph, etc.) through a plug-in driver.
 
-🧱 Pod is running
+Pod is running
 
 ```
 The EBS volume is attached and mounted to that node.
@@ -1398,14 +1438,17 @@ kubectl get endpoints myapp-service
 Terraform infra creation:
 
 ```
-Module folder skeleton
+!!!!!!!Module folder skeleton!!!!!!!!!
+terraform.tfvars → variables.tf → main.tf → outputs.tf
+
+
 # modules/<name>/main.tf
 # resources or upstream registry module
 
 # modules/<name>/variables.tf
 variable "example" { type = string }
 
-# modules/<name>/outputs.tf
+# modules/<name>/outputs.tf # use only outputs from registry! You cannot invent your own output namings. They are already predefined.
 output "example_out" { value = something }
 ```
 ```
@@ -1493,8 +1536,8 @@ module "vpc" {
   private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
   public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
 
-  enable_nat_gateway = true
-  enable_vpn_gateway = true
+  enable_nat_gateway = false  # because we are using VPC endpoints and everything remains in the cloud.
+  enable_vpn_gateway = false
 
   tags = {
     Terraform = "true"
@@ -1542,6 +1585,38 @@ output "vpc_id" {
 
 
 
+
+
+VPC_ENDPOINTS:
+
+This module binds the created endpoints to a service. 
+
+Terraform defines the infrastructure endpoints — the pieces through which services communicate —
+and then AWS binds them together via references (like target_group_arn, subnet_id, vpc_id, etc.)
+
+
+TO DO NEXT: # this will vary from day to day 
+
+1. go back to VPC_endpoints and put the SG there - it is interted in main.tf as a commnent( not edited)
+2. continue with EKS or s3 ? 
+
+DOCUMENT EVERYTHING! # do not delete this line
+
+
+##################################
+REMINDERS: # these lines constantly change also in relation to project evolutiuon
+#################################
+
+EC2 in private subnet needs → NAT Gateway or VPC Endpoint.
+
+RDS needs → Security Group that allows DB port from app layer (EC2/EKS).
+
+Terraform backend needs → S3 + DynamoDB.
+
+Private communication between AWS services needs → Interface Endpoints.
+
+Public access (e.g., website) needs → ALB in public subnet.
+###################################
 
 
 

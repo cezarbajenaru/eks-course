@@ -14,3 +14,19 @@ variable "vpc_reuse_nat_ips" { type = bool }
 variable "vpc_external_nat_ip_ids" { type = list(string) }
 
 variable "vpc_tags" { type = map(string) }
+
+# Security Group variables
+variable "sg_eks_project" { type = string }
+variable "description" { type = string }
+variable "ingress_cidr_blocks" { type = list(string) }
+variable "ingress_rules" { type = list(string) }
+variable "ingress_with_cidr_blocks" {
+  type = list(object({
+    from_port   = number
+    to_port     = number
+    protocol    = string
+    description = string
+    cidr_blocks = list(string)
+  }))
+}
+variable "tags" { type = map(string) }
