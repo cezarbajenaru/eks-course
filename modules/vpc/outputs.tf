@@ -13,7 +13,3 @@ output "public_subnets" {
 output "private_subnets" {
   value = module.vpc.private_subnets
 }
-
-output "nat_public_ips" {
-  value = try(module.vpc.nat_public_ips, [])
-}

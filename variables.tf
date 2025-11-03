@@ -1,5 +1,5 @@
 #variables will be used here in order to leave the modules as clean and reusable as possible
-
+# VPC variables
 variable "vpc_name" { type = string }
 variable "vpc_cidr" { type = string }
 
@@ -29,4 +29,13 @@ variable "ingress_with_cidr_blocks" {
     cidr_blocks = list(string)
   }))
 }
+
+
+## VPC Endpoints variables
+variable "vpc_id" {type = string}
+variable "security_group_ids" {type = list(string)}
+variable "endpoints" {type = map(object({service = string, subnet_ids = list(string), subnet_configurations = list(object({ipv4 = string, subnet_id = string}))}))}
+
+
+#tags
 variable "tags" { type = map(string) }

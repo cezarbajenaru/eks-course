@@ -1455,7 +1455,7 @@ output "example_out" { value = something }
 Root module call
 module "<name>" {
   source = "./modules/<name>"
-  # map root vars to module vars (
+  # map root vars to module vars 
 ```
 ```
 Pass outputs between modules
@@ -1589,16 +1589,25 @@ output "vpc_id" {
 
 VPC_ENDPOINTS:
 
-This module binds the created endpoints to a service. 
+This module binds the created endpoints (a route) inside a VPC to an AWS service! This does not expose anything to the internet. 
 
 Terraform defines the infrastructure endpoints — the pieces through which services communicate —
 and then AWS binds them together via references (like target_group_arn, subnet_id, vpc_id, etc.)
 
+When you declare an endpoint for an S3, this means that endpoints are created for any S3 created in the future in that VPC
+
+
+
+
+
+
 
 TO DO NEXT: # this will vary from day to day 
 
-1. go back to VPC_endpoints and put the SG there - it is interted in main.tf as a commnent( not edited)
-2. continue with EKS or s3 ? 
+1. continue in with S3's and their endpoints. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
+
+
+2. continue with EKS 
 
 DOCUMENT EVERYTHING! # do not delete this line
 

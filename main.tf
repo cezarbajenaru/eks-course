@@ -44,3 +44,4 @@ module "sg_eks_project" {
   ingress_with_cidr_blocks = var.ingress_with_cidr_blocks
   tags = var.tags
 }
+

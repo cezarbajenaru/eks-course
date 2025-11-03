@@ -8,7 +8,7 @@ variable "ingress_with_cidr_blocks" {type = list(object({
     to_port = number
     protocol = string
     description = string
-    cidr_blocks = list(string)
+    cidr_blocks = string  # terraform-aws-modules expects string, not list
 }))}
 
 

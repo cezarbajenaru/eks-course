@@ -2,37 +2,29 @@
 #Each key (s3, dynamodb, sqs, etc.) corresponds to one AWS service endpoint.
 #You can include or remove any of them — there’s no requirement to have all.
 
-module "endpoints" {
+module "vpc_endpoints" {
   source = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
 
-  vpc_id             = "vpc-12345678" #module.vpc.vpc_id
-  security_group_ids = ["sg-12345678"]#module.sg_eks_project.security_group_id
+  vpc_id             = var.vpc_id
+  security_group_id = var.security_group_id
 
-  endpoints = {
+  endpoints = {# the endpoints are intended for all two S3 buckets. It is a general declaration
     s3 = {
-      # interface endpoint
-      service             = "s3"
-      tags                = { Name = "s3-vpc-endpoint" }
-    },
-    sns = {
-      service               = "sns"
-      subnet_ids            = ["subnet-12345678", "subnet-87654321"]
-      subnet_configurations = [
-        {
-          ipv4      = "10.8.34.10"
-          subnet_id = "subnet-12345678"
-        },
-        {
-          ipv4      = "10.8.35.10"
-          subnet_id = "subnet-87654321"
-        }
-      ]
-      tags = { Name = "sns-vpc-endpoint" }
-    },
+      service = "s3"
+      service_type = "Gateway"
+      route_table_ids = [var.route_table_id] # ???????
+      policy = data.aws_iam_policy_document.s3.json
+      tags = { Name = "s3-vpc-endpoint" }
+    }
+    dynamodb = {
+      service = "dynamodb"
+      service_type = "Gateway"
+      route_table_ids = [var.route_table_id] # ???????
+      tags = { Name = "dynamodb-vpc-endpoint" }
+    }
   }
-
-  tags = {
-    Owner       = "user"
-    Environment = "dev"
-  }
+  
+  
+  
+  tags = var.tags
 }
