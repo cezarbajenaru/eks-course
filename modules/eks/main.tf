@@ -3,7 +3,7 @@ module "eks" {
   version = "~> 21.0"
 
   name               = "my-cluster"
-  kubernetes_version = "1.33"
+  kubernetes_version = "1.34"
 
 #core dns and kube-proxy do not have to be created before the compute. There are not pods anyway
   addons = {

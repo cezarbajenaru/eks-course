@@ -33,7 +33,7 @@ source = "./modules/vpc"
   vpc_tags                = var.vpc_tags
 }
 
-
+#security group module
 module "sg_eks_project" {
   source = "./modules/security-group"
   sg_eks_project = var.sg_eks_project
@@ -43,5 +43,14 @@ module "sg_eks_project" {
   ingress_rules = var.ingress_rules
   ingress_with_cidr_blocks = var.ingress_with_cidr_blocks
   tags = var.tags
+}
+
+#### EKS SHOULD GO IN HERE!
+
+module "csi_driver" {
+  source            = "./modules/csi_driver"
+  cluster_name      = module.eks.cluster_name
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.cluster_oidc_issuer_url
 }
 

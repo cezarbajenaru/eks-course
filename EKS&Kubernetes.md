@@ -1597,6 +1597,76 @@ and then AWS binds them together via references (like target_group_arn, subnet_i
 When you declare an endpoint for an S3, this means that endpoints are created for any S3 created in the future in that VPC
 
 
+EKS creation thourgh declarative:
+
+continue here!!!!!!!!
+
+
+After VPC and EKS is running:
+
+
+
+EBS CSI Driver for EFS or EBS volumes to talk to EKS and store pod data.
+Elastic block container is an empty storage ( has not operating system ar anything on it) that acts as a Persisten Volume Storage for the data in the pods. Even if the pods fail, the EBS block si remounted on new pods and reconnects the data.
+EBS needs CSI driver to comunicate with the Kubernetes control planet whoch manages PersistentVolume and PersistentVolumeClaim objects and AWS Ebs service which actually creates and manages the block volumes at the cloud level.
+AWS does not automatically include storage drivers in your worker nodes — that’s where the EBS CSI driver comes in.
+
+When a pod in EKS requests persistent storage via a PersistentVolumeClaim,
+Kubernetes itself doesn’t know how to talk to AWS EBS.
+It relies on the EBS CSI driver add-on, which:
+
+Receives the request from Kubernetes (through the CSI interface).
+
+Uses AWS APIs (via IAM permissions) to create or attach an EBS volume to the right EC2 worker node.
+
+Mounts the volume into the pod’s filesystem automatically.
+
+Detaches and reattaches the volume if the pod or node is rescheduled elsewhere — preserving data.
+
+
+Use this command in the CLI to get the latest version for the CSI Driver in conformity with intended running EKS version:
+```
+aws eks describe-addon-versions \
+  --addon-name aws-ebs-csi-driver \
+  --kubernetes-version 1.31 \
+  --region eu-central-1
+```
+
+
+```
+example code - check registry
+
+module "eks" {
+  source          = "terraform-aws-modules/eks/aws"
+  cluster_name    = "my-cluster"
+  cluster_version = "1.33"
+  enable_irsa     = true
+
+  cluster_addons = {
+    aws-ebs-csi-driver = {
+      most_recent = true
+    }
+  }
+}
+
+```
+
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-ebs-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: gp3
+
+```
+
+
 
 
 
@@ -1605,11 +1675,16 @@ When you declare an endpoint for an S3, this means that endpoints are created fo
 TO DO NEXT: # this will vary from day to day 
 
 1. continue in with S3's and their endpoints. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
+2. CSI driver is done ?
 
 
-2. continue with EKS 
+2. continue with EKS and then update clusternames in csi_driver allover to root/main.tf 
 
-DOCUMENT EVERYTHING! # do not delete this line
+
+After EKS
+Define cluster name in csi_driver/main.tf !!!
+Install CSI Driver for EFS or EBS volumes to talk to EKS and store pod data.
+
 
 
 ##################################
