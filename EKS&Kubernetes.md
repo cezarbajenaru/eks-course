@@ -1438,6 +1438,20 @@ kubectl get endpoints myapp-service
 Terraform infra creation:
 
 ```
+Why terraform.tfvars exist -> It is only for values you want to override without editing main.tf. The usage of it is optional. If you do not write values in tfvars then TF will use the ones in root/main.tf
+
+terraform.tfvars       (optional)
+         ↓
+root main.tf (module "eks" call)
+         ↓
+modules/eks/variables.tf  (declares inputs)
+         ↓
+modules/eks/main.tf       (uses inputs)
+         ↓
+terraform-aws-modules/eks/aws (real cluster creation)
+
+```
+```
 !!!!!!!Module folder skeleton!!!!!!!!!
 terraform.tfvars → variables.tf → main.tf → outputs.tf
 
@@ -1605,6 +1619,11 @@ continue here!!!!!!!!
 After VPC and EKS is running:
 
 
+EBS CSI Driver
+
+Accesing AWS services from Kubernetes pord is nothing but EKS pod Identity
+There isn’t a single Terraform Registry module that wraps the EBS CSI driver setup (IAM role + EKS addon) in one go. A module would add little value.
+Modules are tools, not requirements. Use them when they add value; otherwise, use resource blocks directly.
 
 EBS CSI Driver for EFS or EBS volumes to talk to EKS and store pod data.
 Elastic block container is an empty storage ( has not operating system ar anything on it) that acts as a Persisten Volume Storage for the data in the pods. Even if the pods fail, the EBS block si remounted on new pods and reconnects the data.
@@ -1628,7 +1647,7 @@ Use this command in the CLI to get the latest version for the CSI Driver in conf
 ```
 aws eks describe-addon-versions \
   --addon-name aws-ebs-csi-driver \
-  --kubernetes-version 1.31 \
+  --kubernetes-version 1.34 \
   --region eu-central-1
 ```
 
@@ -1639,7 +1658,7 @@ example code - check registry
 module "eks" {
   source          = "terraform-aws-modules/eks/aws"
   cluster_name    = "my-cluster"
-  cluster_version = "1.33"
+  cluster_version = "1.34"
   enable_irsa     = true
 
   cluster_addons = {
@@ -1673,6 +1692,8 @@ spec:
 
 
 TO DO NEXT: # this will vary from day to day 
+
+EKS has main.tf and variables.tf done ! Must do outputs.tf, tfvars and root/main.tf 
 
 1. continue in with S3's and their endpoints. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
 2. CSI driver is done ?
