@@ -46,6 +46,19 @@ module "sg_eks_project" {
 }
 
 #### EKS SHOULD GO IN HERE!
+module "eks" {
+  source = "./modules/eks"
+  
+  name = var.cluster_name
+  kubernetes_version = var.kubernetes_version
+
+  vpc_id = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnets
+  control_plane_subnet_ids = module.vpc.public_subnets
+
+  eks_managed_node_groups = var.eks_managed_node_groups
+  tags = var.tags
+}
 
 module "csi_driver" {
   source            = "./modules/csi_driver"

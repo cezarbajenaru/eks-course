@@ -39,3 +39,13 @@ variable "endpoints" {type = map(object({service = string, subnet_ids = list(str
 
 #tags
 variable "tags" { type = map(string) }
+
+# EKS variables
+variable "cluster_name" {
+  type        = string
+  description = "Name of the EKS cluster"
+}
+variable "kubernetes_version" {
+  type        = string
+  description = "Version of the Kubernetes cluster"
+}

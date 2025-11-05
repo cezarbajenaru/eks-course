@@ -3,7 +3,7 @@ data "aws_iam_policy_document" "assume_role" {
     effect = "Allow"
     principals {
       type        = "Federated"
-      identifiers = [var.oidc_provider_arn]
+      identifiers = [var.oidc_provider_arn] # this comes from eks outputs.tf
     }
     actions = ["sts:AssumeRoleWithWebIdentity"]
 

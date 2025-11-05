@@ -16,32 +16,18 @@ module "eks" {
       before_compute = true
     }
   }
-
   # Optional
   endpoint_public_access = true
 
   # Optional: Adds the current caller identity as an administrator via cluster access entry
   enable_cluster_creator_admin_permissions = true
 
-  vpc_id                   = module.vpc.vpc_id
-  subnet_ids               = module.vpc.private_subnets
-
-  control_plane_subnet_ids = module.vpc.public_subnets
+  vpc_id                   = var.vpc_id
+  subnet_ids               = var.subnet_ids
+  control_plane_subnet_ids = var.control_plane_subnet_ids
 
   # EKS Managed Node Group(s)
-  eks_managed_node_groups = {
-    example = {
-      ami_type       = "AL2023_x86_64_STANDARD"
-      instance_types = ["m5.xlarge"]
+  eks_managed_node_groups = var.eks_managed_node_groups
 
-      min_size     = 2
-      max_size     = 10
-      desired_size = 2
-    }
-  }
-
-  tags = {
-    Environment = "dev"
-    Terraform   = "true"
-  }
+  tags = var.tags
 }

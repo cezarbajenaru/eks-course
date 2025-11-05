@@ -180,7 +180,24 @@ OIDC - Open ID connect
 
 Humans have IAM accounts
 
-Service accounts let resources (not humans ) comunicate like pods to authenticate to the API or authenticate to cloud services via OIDC/IRSA in AWS / Service Accounts = identities for workloads (pods, controllers, jobs), not for humans.
+Service accounts lets resources (not humans ) comunicate like pods to authenticate to the API or authenticate to cloud services via OIDC/IRSA in AWS / Service Accounts = identities for workloads (pods, controllers, jobs), not for humans.
+
+- Open ID Connect (OIDC) allows Pods to authenticate to other services (s3, EBS, DynamoDb) without storing AWS credentials inside the pod and uses the IAM Role:
+This means that pods do not need an AWS configure account to reach services
+- Each Pod uses a Service Account. We link that Service Account to an IAM Role.
+AWS trusts the identity coming from EKS, so the Pod gets temporary access without secrets
+- storing AWS keys inside containers is insecure 
+
+```
+Pod ----> uses ServiceAccount token
+   \
+    \  (federated identity trust via OIDC)
+     \
+      IAM Role (IRSA)
+       \
+        AWS Service (S3, EBS, DynamoDB, etc.)
+
+```
 
 Both from above must respect RBAC rules to decide what they can do
 
@@ -1391,12 +1408,15 @@ Env variables
 CSI drive: CSI stands for Container Storage Interface —
 a standard API that allows Kubernetes to talk to any storage backend (AWS, GCP, Ceph, etc.) through a plug-in driver.
 
+
+
 Pod is running
 
 ```
 The EBS volume is attached and mounted to that node.
 The application writes data into /data, which goes to EBS.
 Pod dies / Node drained
+If a Pod is rescheduled to another node, the data volume moves with it
 Kubernetes terminates the Pod.
 The EBS CSI driver detaches the volume from that EC2 node.
 Replica / new Pod scheduled
@@ -1534,6 +1554,28 @@ Get the pattern for the resource from Terraform registry, copy it and paste it i
 For example:
 "name" and "cidr" are input variables(not names I come up with). Meaning name=var.vpc_cidr means input_variable = type_of_value.the_string_name_defined_in_tfvars
 
+```
+| File                              | Purpose                                                   | When to Define Variables                                   | Example                                           |
+| --------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------- |
+| **modules/eks/variables.tf**      | Declares the inputs that the *EKS module itself* needs    | **When `modules/eks/main.tf` references `var.*`**          | `variable "name" { type = string }`               |
+| **root/variables.tf**             | Declares inputs to the *root module* (the entire project) | **When `root/main.tf` references `var.*`**                 | `variable "kubernetes_version" { type = string }` |
+| **terraform.tfvars** *(optional)* | Provides actual values that override variables            | **When you want to configure values without editing code** | `name = "plasticmemory-eks-cluster"`              |
+
+terraform.tfvars      (optional user-defined values)
+        ↓
+root/main.tf          (passes values into modules)
+        ↓
+root/variables.tf     (declares what the root accepts as input)
+        ↓
+modules/eks/main.tf   (uses values internally)
+        ↓
+modules/eks/variables.tf  (declares what the module accepts as input)
+        ↓
+terraform-aws-modules/eks/aws  (creates actual AWS resources)
+
+```
+
+
 Replace hardcoded values with var.nameofthevariable 
 Like this:
 From this:
@@ -1559,6 +1601,7 @@ module "vpc" {
   }
 }
 ```
+
 
 To this:
 modules/vpc/variables.tf
@@ -1596,9 +1639,6 @@ output "vpc_id" {
   description = "The ID of the VPC"
 }
 ```
-
-
-
 
 
 VPC_ENDPOINTS:
@@ -1694,6 +1734,8 @@ spec:
 TO DO NEXT: # this will vary from day to day 
 
 EKS has main.tf and variables.tf done ! Must do outputs.tf, tfvars and root/main.tf 
+EKS module not called in main.tf
+
 
 1. continue in with S3's and their endpoints. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
 2. CSI driver is done ?
@@ -1707,6 +1749,14 @@ Define cluster name in csi_driver/main.tf !!!
 Install CSI Driver for EFS or EBS volumes to talk to EKS and store pod data.
 
 
+To asess if needed!: 
+No RDS MySQL infrastructure
+No Kubernetes manifests for WordPress
+No Kubernetes manifests for MySQL (if deploying in-cluster)
+No Ingress/ALB controller setup
+No PersistentVolumeClaims for WordPress media
+No Secrets for database credentials
+No ConfigMaps for WordPress configuration
 
 ##################################
 REMINDERS: # these lines constantly change also in relation to project evolutiuon
