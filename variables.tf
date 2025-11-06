@@ -18,7 +18,6 @@ variable "vpc_tags" { type = map(string) }
 # Security Group variables
 variable "sg_eks_project" { type = string }
 variable "description" { type = string }
-variable "ingress_cidr_blocks" { type = list(string) }
 variable "ingress_rules" { type = list(string) }
 variable "ingress_with_cidr_blocks" {
   type = list(object({
@@ -30,18 +29,11 @@ variable "ingress_with_cidr_blocks" {
   }))
 }
 
-
-## VPC Endpoints variables
-variable "vpc_id" {type = string}
-variable "security_group_ids" {type = list(string)}
-variable "endpoints" {type = map(object({service = string, subnet_ids = list(string), subnet_configurations = list(object({ipv4 = string, subnet_id = string}))}))}
-
-
 #tags
 variable "tags" { type = map(string) }
 
 # EKS variables
-variable "cluster_name" {
+variable "name" {
   type        = string
   description = "Name of the EKS cluster"
 }
@@ -49,3 +41,11 @@ variable "kubernetes_version" {
   type        = string
   description = "Version of the Kubernetes cluster"
 }
+
+variable "eks_managed_node_groups" {type = map(object({
+    ami_type = string
+    instance_types = list(string)
+    min_size = number
+    max_size = number
+    desired_size = number
+}))}

@@ -4,7 +4,6 @@
 
 # Local .terraform directories (module cache, providers, plugin binaries)
 **/.terraform/*
-**/.terraform.lock.hcl
 
 # Local Terraform state files
 *.tfstate

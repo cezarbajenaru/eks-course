@@ -35,11 +35,9 @@ source = "./modules/vpc"
 
 #security group module
 module "sg_eks_project" {
-  source = "./modules/security-group"
+  source = "./modules/security_group"
   sg_eks_project = var.sg_eks_project
   description = var.description
-  vpc_id = module.vpc.vpc_id
-  ingress_cidr_blocks = var.ingress_cidr_blocks
   ingress_rules = var.ingress_rules
   ingress_with_cidr_blocks = var.ingress_with_cidr_blocks
   tags = var.tags
@@ -49,7 +47,7 @@ module "sg_eks_project" {
 module "eks" {
   source = "./modules/eks"
   
-  name = var.cluster_name
+  name = var.name
   kubernetes_version = var.kubernetes_version
 
   vpc_id = module.vpc.vpc_id
@@ -62,7 +60,8 @@ module "eks" {
 
 module "csi_driver" {
   source            = "./modules/csi_driver"
-  cluster_name      = module.eks.cluster_name
+  name              = "${module.eks.name}-csi-driver"
+  cluster_name      = var.cluster_name
   oidc_provider_arn = module.eks.oidc_provider_arn
   oidc_provider_url = module.eks.cluster_oidc_issuer_url
 }
