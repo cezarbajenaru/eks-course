@@ -121,11 +121,11 @@ tfsec-results.json
 ###################################
 # 🔧 OPTIONAL: SAFE EXCEPTIONS
 ###################################
-!terraform.tfvars.example
-!backend.tfvars.example
-!*.tf
-!modules/
-!main.tf
-!variables.tf
-!outputs.tf
-!locals.tf
+#!terraform.tfvars.example
+#!backend.tfvars.example
+#!*.tf
+#!modules/
+#!main.tf
+#!variables.tf
+#!outputs.tf
+#!locals.tf
