@@ -36,6 +36,7 @@ source = "./modules/vpc"
 #security group module
 module "sg_eks_project" {
   source = "./modules/security_group"
+  vpc_id = var.vpc_id
   sg_eks_project = var.sg_eks_project
   description = var.description
   ingress_rules = var.ingress_rules
@@ -60,8 +61,7 @@ module "eks" {
 
 module "csi_driver" {
   source            = "./modules/csi_driver"
-  name              = "${module.eks.name}-csi-driver"
-  cluster_name      = var.cluster_name
+  cluster_name = module.eks.cluster_name
   oidc_provider_arn = module.eks.oidc_provider_arn
   oidc_provider_url = module.eks.cluster_oidc_issuer_url
 }

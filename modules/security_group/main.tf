@@ -3,7 +3,7 @@ module "sg_eks_project" {
 
   name        = var.sg_eks_project
   description = var.description
-  vpc_id      = module.vpc.vpc_id  # VPC ID is passed from root module as a variable
+  vpc_id      = var.vpc_id  # VPC ID is passed from root module as a variable
 
   ingress_cidr_blocks      = var.ingress_cidr_blocks
   ingress_rules            = var.ingress_rules

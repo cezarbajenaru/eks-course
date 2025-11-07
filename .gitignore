@@ -3,7 +3,7 @@
 ###################################
 
 # Local .terraform directories (module cache, providers, plugin binaries)
-**/.terraform/*
+.terraform/
 
 # Local Terraform state files
 *.tfstate

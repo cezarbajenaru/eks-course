@@ -17,6 +17,7 @@ variable "vpc_tags" { type = map(string) }
 
 # Security Group variables
 variable "sg_eks_project" { type = string }
+variable "vpc_id" { type = string }
 variable "description" { type = string }
 variable "ingress_rules" { type = list(string) }
 variable "ingress_with_cidr_blocks" {
