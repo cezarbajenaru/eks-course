@@ -9,13 +9,17 @@ output "vpc_cidr_block" {
   value       = module.vpc.vpc_cidr_block
 }
 
+
+
+
 # Security Group outputs
-output "security_group_id" {
+output "security_group_name" {
   description = "The ID of the security group"
-  value       = module.sg_eks_project.sg_group_id
+  value       = module.sg_eks_project.security_group_name
 }
 
 output "security_group_vpc_id" {
   description = "The VPC ID of the security group"
-  value       = module.sg_eks_project.vpc_id
+  value       = module.sg_eks_project.security_group_vpc_id
 }
+
