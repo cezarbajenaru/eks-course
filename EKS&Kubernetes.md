@@ -1458,6 +1458,17 @@ kubectl get endpoints myapp-service
 Terraform infra creation:
 
 ```
+Concept	Rule
+Backend	Always defined in root, never in modules
+State bucket & lock table	Created once, before using backend
+Modules	Must contain only resources + their own inputs/outputs
+Root	Only orchestrates (wires modules together)
+Variables	Come from root → flow downward
+Outputs	Come from modules → flow upward
+```
+
+
+```
 Why terraform.tfvars exist -> It is only for values you want to override without editing main.tf. The usage of it is optional. If you do not write values in tfvars then TF will use the ones in root/main.tf
 
 terraform.tfvars       (optional)
@@ -1725,6 +1736,20 @@ spec:
 
 ```
 
+S3 Bucket with versioning
+
+Create a root/backend folder 
+State backend configuration belongs to the root, because the root controls the entire state.
+Modules must never contain backend blocks — they inherit state context from the root.
+
+First off, after we have terraform validate with success we need to run the boostrap folder first so we can create the S3 state bucket 
+cd backend/bootstrap
+terraform init
+terraform apply
+then after creation:
+We can now go back to root folder, then:
+terraform init -migrate-state
+
 
 
 
@@ -1733,20 +1758,11 @@ spec:
 
 TO DO NEXT: # this will vary from day to day 
 
-EKS has main.tf and variables.tf done ! Must do outputs.tf, tfvars and root/main.tf 
-EKS module not called in main.tf
-
 
 1. continue in with S3's and their endpoints. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
 2. CSI driver is done ?
 
 
-2. continue with EKS and then update clusternames in csi_driver allover to root/main.tf 
-
-
-After EKS
-Define cluster name in csi_driver/main.tf !!!
-Install CSI Driver for EFS or EBS volumes to talk to EKS and store pod data.
 
 
 To asess if needed!: 

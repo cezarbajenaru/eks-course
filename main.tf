@@ -7,6 +7,18 @@
 #  variable2 = "value"
 #}
 
+
+#terraform state backend configuration - where state will be stored
+terraform {
+    backend "s3" {
+      bucket = "plastic-memory-terraform-state"
+      key = "eks/terraform.tfstate"
+      region = "eu-central-1"
+      dynamodb_table = "terraform-state-lock"
+      encrypt = true
+   }
+}
+
 locals {
   region = "eu-central-1"
 }
@@ -36,7 +48,7 @@ source = "./modules/vpc"
 #security group module
 module "sg_eks_project" {
   source = "./modules/security_group"
-  vpc_id = var.vpc_id
+  vpc_id = module.vpc.vpc_id
   sg_eks_project = var.sg_eks_project
   description = var.description
   ingress_rules = var.ingress_rules
@@ -65,4 +77,5 @@ module "csi_driver" {
   oidc_provider_arn = module.eks.oidc_provider_arn
   oidc_provider_url = module.eks.cluster_oidc_issuer_url
 }
+
 
