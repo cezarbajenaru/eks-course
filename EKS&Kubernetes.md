@@ -1661,22 +1661,49 @@ and then AWS binds them together via references (like target_group_arn, subnet_i
 
 When you declare an endpoint for an S3, this means that endpoints are created for any S3 created in the future in that VPC
 
-
-EKS creation thourgh declarative:
-
-continue here!!!!!!!!
+########################################################################
 
 
-After VPC and EKS is running:
+After the VPC and EKS cluster are deployed using Terraform, the next objective is to deploy a stateful workload (MySQL) inside Kubernetes.
+Stateful workloads require persistent storage so that data is not lost when pods restart.
+
+AWS does not include storage support in EKS by default.
+To enable persistent storage using AWS EBS volumes, the cluster needs the EBS CSI Driver.
 
 
 EBS CSI Driver
+Three four things are needed here for pods to have data attached to them
+1) module/eks/main.tf  Addon section where
+1) CSI Driver          = Makes Kubernetes able to create EBS volumes in AWS      = modules/csi_driver
+
+2) StorageClass (gp3)  = Defines the type of EBS volume to create  = storage/storageclass-gp3.aml
+  Defines *which type and lifecycle rules* the EBS volumes should have.
+3) Helm MySQL Chart    = Requests storage and uses it              = root/main.tf helm section 
+  Creates the PersistentVolumeClaim (PVC), which triggers EBS volume provisioning.
 
 Accesing AWS services from Kubernetes pord is nothing but EKS pod Identity
 There isn’t a single Terraform Registry module that wraps the EBS CSI driver setup (IAM role + EKS addon) in one go. A module would add little value.
 Modules are tools, not requirements. Use them when they add value; otherwise, use resource blocks directly.
 
-EBS CSI Driver for EFS or EBS volumes to talk to EKS and store pod data.
+EBS CSI Driver exists for EFS or EBS volumes to talk to EKS and store pod data.
+  It handles creation of the EBS module
+  Attaches and detaches volumes to worker nodes
+  Reataches volumes if pods move to another node
+  Preserves data even when pods restart
+
+In Terraform this block installs the ebs driver as a managed EKS addon
+This is in modules/eks/main.tf
+```
+addons = {
+    aws-ebs-csi-driver = {
+      most_recent = true
+    }
+    coredns = {}
+    kube-proxy = {}
+    vpc-cni = {}
+  }
+```
+
 Elastic block container is an empty storage ( has not operating system ar anything on it) that acts as a Persisten Volume Storage for the data in the pods. Even if the pods fail, the EBS block si remounted on new pods and reconnects the data.
 EBS needs CSI driver to comunicate with the Kubernetes control planet whoch manages PersistentVolume and PersistentVolumeClaim objects and AWS Ebs service which actually creates and manages the block volumes at the cloud level.
 AWS does not automatically include storage drivers in your worker nodes — that’s where the EBS CSI driver comes in.
@@ -1702,25 +1729,13 @@ aws eks describe-addon-versions \
   --region eu-central-1
 ```
 
+root/storage/storageclass-gp3.yaml
+kubectl apply -f storage/storageclass-gp3.yaml
+kubectl get pvc
+kubectl get pv
+kubectl get pods
 
-```
-example code - check registry
-
-module "eks" {
-  source          = "terraform-aws-modules/eks/aws"
-  cluster_name    = "my-cluster"
-  cluster_version = "1.34"
-  enable_irsa     = true
-
-  cluster_addons = {
-    aws-ebs-csi-driver = {
-      most_recent = true
-    }
-  }
-}
-
-```
-
+STORAGE CLASS CREATES A KUBERNETES OBJECT not an AWS resource
 ```
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -1735,8 +1750,138 @@ spec:
   storageClassName: gp3
 
 ```
+The PVC does not immediately create the EBS volume. 
+Because the StorageClass is configured with `volumeBindingMode: WaitForFirstConsumer`,
+the EBS volume is only created after a pod is scheduled that uses this PVC.
 
-S3 Bucket with versioning
+Important:
+The actual EBS volume is not created until a pod that uses the PVC is scheduled.
+This is due to the StorageClass setting: `volumeBindingMode: WaitForFirstConsumer`.
+
+Terraform enables the EBS CSI driver in EKS so the cluster can provision EBS volumes. 
+The StorageClass (gp3) defines the type of EBS volume to create. 
+The MySQL Helm chart creates a PersistentVolumeClaim (PVC), and the PVC triggers the CSI driver 
+to provision and attach a gp3 EBS volume to the MySQL pod.
+
+Mysql database:
+
+This goes in root/main.tf
+
+```
+data "aws_eks_cluster_auth" "cluster" {#this asks AWS for a authentication token for the cluster_name
+  name = module.eks.cluster_name
+}
+
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = data.aws_eks_cluster.cluster.endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    token                  = data.aws_eks_cluster_auth.cluster.token
+  }
+}
+
+resource "helm_release" "mysql" {#this is a helm release for the mysql chart
+  name       = "mysql"
+  namespace  = "default"
+
+  repository = "https://charts.bitnami.com/bitnami"
+  chart      = "mysql"
+  version    = ">= 9.0.0"
+  
+  set {
+    name  = "primary.persistence.storageClass"
+    value = "gp3"
+  }
+
+  set {
+    name  = "primary.persistence.size"
+    value = "20Gi"
+  }
+
+  set {
+    name  = "auth.rootPassword"
+    value = "SuperStrongPassword123" # change before sharing
+  }
+}
+```
+
+Mysql database will live in a pod next to other pods that use EBS for own pod storage. Practically 
+
+MySQL = a pod
+
+The pod = needs a data directory (/var/lib/mysql)
+
+That directory = is mounted from an EBS volume
+
+EBS = is provisioned automatically through your gp3 StorageClass + CSI driver
+
+Kubernetes needs three things in order to run a misql database in Kubernetes with it's data stored on a AWS ebs disk
+StorageClass - What type of disk are we creating 
+PVC or Persistent volume claim which is a request 
+Mysql Pod which is statefull and uses the disk created. 
+
+```
+                 ┌─────────────────────────────┐
+                 │         Terraform            │
+                 │  Deploys EKS + EBS CSI addon │
+                 └───────────────┬─────────────┘
+                                 │
+                                 │ enables
+                                 │
+                 ┌───────────────▼────────────────┐
+                 │       EBS CSI Driver            │
+                 │  (allows Kubernetes to create   │
+                 │   and attach AWS EBS volumes)   │
+                 └───────────────┬────────────────┘
+                                 │
+                                 │ referenced by
+                                 │
+             ┌───────────────────▼───────────────────┐
+             │        StorageClass: gp3               │
+             │  (defines EBS volume type + behavior)  │
+             └───────────────────┬───────────────────┘
+                                 │
+                                 │ used by
+                                 │
+                    ┌────────────▼────────────┐
+                    │   Helm MySQL Release    │
+                    │ (deploys MySQL Pod and  │
+                    │  creates PVC request)   │
+                    └────────────┬────────────┘
+                                 │
+                                 │ creates
+                                 │ PVC (PersistentVolumeClaim)
+                                 │
+                    ┌────────────▼────────────┐
+                    │   PersistentVolumeClaim │
+                    │  ("I need 20Gi storage")│
+                    └────────────┬────────────┘
+                                 │
+                                 │ triggers provisioning via CSI
+                                 │
+                     ┌───────────▼───────────┐
+                     │   EBS Volume (gp3)    │
+                     │  Created in AWS       │
+                     └───────────┬───────────┘
+                                 │ attached to
+                                 │
+                    ┌────────────▼────────────┐
+                    │       MySQL Pod         │
+                    │   (/var/lib/mysql data) │
+                    └─────────────────────────┘
+
+
+```
+
+######################################################
+
+S3 State Bucket with versioning ( terraform statefile )
 
 Create a root/backend folder 
 State backend configuration belongs to the root, because the root controls the entire state.
@@ -1753,17 +1898,49 @@ terraform init -migrate-state
 
 
 
+Mysql database ( an internal VPC service ):
+
+Mysql database will live in a pod next to other pods that use EBS for own pod storage. Practically 
+
+MySQL = a pod
+
+The pod = needs a data directory (/var/lib/mysql)
+
+That directory = is mounted from an EBS volume
+
+EBS = is provisioned automatically through your gp3 StorageClass + CSI driver
+
+Kubernetes needs three things in order to run a misql database in Kubernetes with it's data stored on a AWS ebs disk
+StorageClass - What type of disk are we creating 
+PVC or Persistent volume claim which is a request 
+Mysql Pod which is statefull and uses the disk created. 
+
+
+
+
+
 
 
 
 TO DO NEXT: # this will vary from day to day 
 
+Check cursor for the last indications on CSO module
+0. Continue creating ALB. Nothing is created at this point
 
-1. continue in with S3's and their endpoints. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
-2. CSI driver is done ?
+1. continue in with S3's and their endpoints???. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
 
 
 
+Bonus : play in "kind" with PV, PVC, Mysql, etc
+Generate a YAML file of a certain image (Dry run is the best way to generate a skeleton, which can then be modified as per the requirements) 
+‘kubectl create deployment [deployment-name] --image=[image-name] -n [namespace] --dry-run=client -o yaml > d.yaml’
+
+
+
+
+Create Kubernetes Manifests for User Management Microservice Deployment
+Kubernetes secrets?
+Kubernetes ini containers?
 
 To asess if needed!: 
 No RDS MySQL infrastructure
@@ -1787,13 +1964,7 @@ Terraform backend needs → S3 + DynamoDB.
 Private communication between AWS services needs → Interface Endpoints.
 
 Public access (e.g., website) needs → ALB in public subnet.
+
+
+
 ###################################
-
-
-
-
-
-
-
-
-

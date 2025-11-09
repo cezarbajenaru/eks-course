@@ -78,4 +78,47 @@ module "csi_driver" {
   oidc_provider_url = module.eks.cluster_oidc_issuer_url
 }
 
+#mysql database creation
 
+
+data "aws_eks_cluster_auth" "cluster" {#this asks AWS for a authentication token for the cluster_name
+  name = module.eks.cluster_name
+}
+
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = data.aws_eks_cluster.cluster.endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    token                  = data.aws_eks_cluster_auth.cluster.token
+  }
+}
+
+resource "helm_release" "mysql" {#this is a helm release for the mysql chart
+  name       = "mysql"
+  namespace  = "default"
+
+  repository = "https://charts.bitnami.com/bitnami"
+  chart      = "mysql"
+  version    = ">= 9.0.0"
+  
+  set {
+    name  = "primary.persistence.storageClass"
+    value = "gp3"
+  }
+
+  set {
+    name  = "primary.persistence.size"
+    value = "20Gi"
+  }
+
+  set {
+    name  = "auth.rootPassword"
+    value = "SuperStrongPassword123" # change before sharing
+  }
+}

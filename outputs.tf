@@ -22,4 +22,3 @@ output "security_group_vpc_id" {
   description = "The VPC ID of the security group"
   value       = module.sg_eks_project.security_group_vpc_id
 }
-

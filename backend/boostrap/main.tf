@@ -4,7 +4,7 @@ provider "aws" {
 }
 
 
-resource "aws_s3_bucket" "terraform_state" {
+resource "aws_s3_bucket" "terraform_state" {    #this will create the s3 bucket for the terraform state
     bucket = "plastic-memory-terraform-state"
 
     versioning {
@@ -13,8 +13,9 @@ resource "aws_s3_bucket" "terraform_state" {
     lifecycle {
         prevent_destroy = true
     }
+}
 
-    resource "aws_dynamodb_table" "terraform_state_lock" {
+    resource "aws_dynamodb_table" "terraform_state_lock" {    #this will create the dynamodb table for the terraform state lock
         name = "terraform-state-lock"
         billing_mode = "PAY_PER_REQUEST"
         hash_key = "LockID"
@@ -22,6 +23,7 @@ resource "aws_s3_bucket" "terraform_state" {
             name = "LockID"
             type = "S"
         }
+    lifecycle { #this will prevent the table from being destroyed
+        prevent_destroy = true
     }
-
 }
