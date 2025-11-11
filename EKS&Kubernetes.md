@@ -1915,19 +1915,111 @@ StorageClass - What type of disk are we creating
 PVC or Persistent volume claim which is a request 
 Mysql Pod which is statefull and uses the disk created. 
 
+########################################################
+AWS ALB
+
+In in EKS:          #in Normal Kubernetes in EC2 these must be setup along many others like etcd, etc
+  IAM Roles for Service Accounts (IRSA) are automatically integrated
+  The OIDC provider is already managed
+  Worker nodes automatically have AWS networking
+  Subnets are already tagged for ALB auto-discovery
+
+  In EKS: prerequisites are mostly auto-configured.
+  In self-managed Kubernetes on AWS: we configure OIDC, IRSA, subnet tagging, and Helm manually.
+
+
+ELB is just the name of the AWS load balancing service family.(ELB or CLB is practically deprecated)
+
+Application Load Balancer functions at the application layer, the seventh layer of the Open Systems Interconnection (OSI) model
+
+The load balancer is a single point of contact with the clients. The load balancer distribuites traffic accross multiple targets such as resources like EC2 or others, in multiple AZ - Increases the availibility of the application.
+
+A listener checks for connection requests from clients using the port and protocol that you configure. Default rule for each listener must be defined. One listener can have a different set of rules that point to a different target group of resources. One target can be registered in two target groups or more
+
+Elastic Load Balancing scales your load balancer as traffic to your application changes over time. Elastic Load Balancing can scale to the vast majority of workloads automatically.
+
+You can configure health checks, which are used to monitor the health of the registered targets so that the load balancer can send requests only to the healthy targets.
+
+ALB liver inside the VPC -> Targer groups must belond to tha same VPC as the ALB -> Must have network reachability in the VPC network -> Routing is independent because it is on Layer 7 - The application layer
+What ALB actually has:
+
+  The listener:
+    You can configure the listener to forward requests based on the URL in the request. In this way you can structure the application in multiple smaller services and route requests using specific URL.
+    The default routing algorithm is round robin, specify something else if you want
+  Routing is performed independently for each target group, even when a target is registered with multiple target groups
+
+
+How Kubernetes and AWS talk to each other -> AWS LoadBalancer Controller:
+  A target group is a list of POD IP's exposed by kubernetes service ( A target group does not have it's own IP - is a list of endpoints!!!)
+    [target1_IP:port, target2_IP:port, target3_IP:port, ...]
+    Target group IP's always change because pods recreate themselves all the time:
+      who updates AWS Target Group membership? 
+      The AWS LoadBalancer Controller which lives in Kubernetes makes the updated to Target group:
+      AWS LB controller watches for Ingress and Service events in Kubernetes, searches the matching pods via label selectors, register and deregisters POD IP's from TargetGroups
+      Reconciles continuously Desired state vs Current state -> This is a state sync loop. ( the loop has no interval, Inside Kubernetes, controllers subscribe to API change streams: any service added, updated, scaled, rescheduled, pod IP changed, intress created/updated = event that the loops reads - controller receives and it reacts - Inside Kubernetes, controllers subscribe to API change streams) Every 10 minutes there is a default general sync anyway
+      Kubernetes does not tell ALB how many pods exist. 
+      
+
+
+  ALB (Static URL/public) -> Listerner rule -> Target groups ( the list of endpoints) -> POD running and exposed by service
+
+ALB  = HTTP/HTTPS apps (WordPress, APIs, websites)
+NLB  = TCP/UDP, high performance, internal services
+GWLB = Network security appliance traffic routing
+
+Main possibilites for ALB:
+-  Path conditions: You can configure rules for your listener that forward requests based on the URL in the request. This enables you to structure your application as smaller services, and route requests to the correct service based on the content of the URL.
+
+- Routing based on fields in the request, such as HTTP header conditions and methods, query parameters, and source IP addresses
+- Routing requests to multiple applications on a single EC2 instance. You can register an instance or IP address with multiple target groups, each on a different port.
+- Redirecting requests from one URL to another.
+- Returning a custom HTTP response.
+- Registering targets by IP address, including targets outside the VPC for the load balance
+- Registering targets by IP address, including targets outside the VPC for the load balance
+- Load balancer to authenticate users of your applications through their corporate or social identities before routing requests
+- Containerized applications. Amazon Elastic Container Service (Amazon ECS) can select an unused port when scheduling a task and register the task with a target group using this port. This enables you to make efficient use of your clusters
+- Monitoring the health of each service independently, as health checks are defined at the target group level and many CloudWatch metrics are reported at the target group level. Attaching a target group to an Auto Scaling group enables you to scale each service dynamically based on demand
+- Access logs contain additional information and are stored in compressed format
 
 
 
+In a Terraform module the steps are look like this
+It must have the following installed :
+  OIDC created
+  IRSA (IAM role for service accounts)
+  Subnets that are autotriggered
+  Node IAM roles are setup properly
+  After those are setup, ALB controller becomes just a resource in TF ( helm release )
+  resource "helm_release" "aws_load_balancer_controller" { ... }
+
+Final short thoughts:
+AWS Load Balancer Controller:
+ Runs inside Kubernetes, not AWS.
+ Not built into EKS, but maintained by AWS.
+ Works on any Kubernetes cluster running in AWS.
+ Does NOT work outside AWS.
+
+ AWS Load Balancer Controller = Event-driven.
+Watches Ingress + Service + EndpointSlice.
+Updates target group membership in real-time.
+No polling interval. Safety resync ~10 min.
+
+
+The AWS Load Balancer Controller is not built into EKS.
+It must be installed manually on all clusters.
 
 
 
-
+######################################################
 TO DO NEXT: # this will vary from day to day 
 
-Check cursor for the last indications on CSO module
-0. Continue creating ALB. Nothing is created at this point
-
+Check cursor for the last indications on CSI module
+0. Read AWS ALB docs. Deploy current infra without ALB -> Write ALB
+0. Add a Readme.de with project purpose and tech used. Who runs who
 1. continue in with S3's and their endpoints???. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
+2. Link data to Ollama ( instructions in learning doc)\
+3. Some diagram featuring EBS CSI -> storageclass -> PVC
+  ALB controller -> Ingress flow
 
 
 
@@ -1935,6 +2027,7 @@ Bonus : play in "kind" with PV, PVC, Mysql, etc
 Generate a YAML file of a certain image (Dry run is the best way to generate a skeleton, which can then be modified as per the requirements) 
 ‘kubectl create deployment [deployment-name] --image=[image-name] -n [namespace] --dry-run=client -o yaml > d.yaml’
 
+####################################################
 
 
 

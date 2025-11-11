@@ -92,7 +92,7 @@ index = VectorStoreIndex.from_documents(documents, embed_model=embed_model)
 # Query engine to answer questions using your notes
 query_engine = index.as_query_engine(llm=llm)
 
-print("✅ RAG ready. Ask anything from your notes.")
+print( RAG ready. Ask anything from your notes.")
 while True:
     q = input("\nAsk: ")
     response = query_engine.query(q)
