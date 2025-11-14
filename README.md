@@ -4,3 +4,11 @@ Final purpose: A Wordpress website into a Kubernetes cluster that has a chatbot 
 
 Uses modules as a main structure for files, variables and outputs.
     VPC, EKS, Sec Group, VPC Endpoints, S3 for .tfstate DynamoDB Lock, Csi driver, Ollama, Cloudwatch
+
+
+terraform apply                 # create EKS + CSI
+aws eks update-kubeconfig
+kubectl apply storageclass-gp3
+terraform apply                 # MySQL deploy
+helm install wordpress ...      # or helm_release
+kubectl apply ingress.yaml      # triggers ALB

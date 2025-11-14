@@ -7,6 +7,8 @@ curl -fsSL https://ollama.com/install.sh | sh
 qwen3:14b is running at the moment
 
 ollama pull nameofwhateverLLMmodel
+
+ollama serve   ( starts the service and blocks the terminal - open another one to use further)
 ollama run nameofwhateverLLMmodel #once it runs, you can get out of the CLI with CTRL+D
 The LLM still remains active in backround because ollama run has been executed. To get back to CLI hit ollama run modelname again and you are back
 
@@ -15,6 +17,14 @@ ollama stop nameofwhateverLLMmodel  #you are unloading the LLM from RAM
 ollama stop --all #if you are running multiple models
 ollama ps to see usage
 
+echo $OLLAMA_HOST
+
+Ollama sometimes binds to Docker bridge instead of localhost. So we have to undo this
+OLLAMA_HOST=0.0.0.0:11434 ollama serve
+
+
+To see what is running: 
+docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Ports}}"
 
 Now that the LLM runs in the backournd, there is a Daemon that runs on localhost
 Practically when you run the LLM, ollama runs "ollama serve" command automatically and an localhost endpoint is created - http://localhost:11434/api/version
@@ -24,6 +34,18 @@ you can curl into it: curl http://localhost:11434/api/version
 You can now ask in the CLI whatever
 
 Interactive sesisons in terminal cannot be redirected directly
+
+########## 
+Port Forwarding Wordpress locally
+
+ip addr show eth0   # to see your ip adress
+ip addr show eth0 | grep inet
+
+In Powershell
+netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=8080 connectaddress=172.25.10.45 connectport=8080
+################
+
+
 
 You can append to files >> using the followin commands
 ollama run qwen3:14b "Explain Init Containers" >> notes.md

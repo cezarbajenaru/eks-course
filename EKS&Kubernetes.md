@@ -2009,12 +2009,32 @@ The AWS Load Balancer Controller is not built into EKS.
 It must be installed manually on all clusters.
 
 
+WP local testing
+When this works locally → your environment variables and connectivity are correct.
+
+When deploying to Kubernetes, you'll translate the same values to:
+
+values.yaml for WordPress Helm chart
+
+Kubernetes Secret for DB password
+
+Service + Ingress for access
+
+PVC for data storage
+
+
 
 ######################################################
 TO DO NEXT: # this will vary from day to day 
 
 Check cursor for the last indications on CSI module
-0. Read AWS ALB docs. Deploy current infra without ALB -> Write ALB
+0. terraform apply                 # create EKS + CSI
+aws eks update-kubeconfig
+kubectl apply storageclass-gp3
+terraform apply                 # MySQL deploy
+helm install wordpress ...      # or helm_release
+kubectl apply ingress.yaml      # triggers ALB
+
 0. Add a Readme.de with project purpose and tech used. Who runs who
 1. continue in with S3's and their endpoints???. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
 2. Link data to Ollama ( instructions in learning doc)\
@@ -2028,6 +2048,33 @@ Generate a YAML file of a certain image (Dry run is the best way to generate a s
 ‘kubectl create deployment [deployment-name] --image=[image-name] -n [namespace] --dry-run=client -o yaml > d.yaml’
 
 ####################################################
+Kubernetes Init containers:
+Because in K8s or EKS pod creation order is not guaranteed, init containers come in key points in time to intervene and create a particular creation order.
+For example Wordpress if created first, is must wait untill MySql is up and running to write it's first ever running data on it, or first user creation. In this way, a init container is similar to a boostrap in Terraform which at first creation handles a kind of order ( some object waiting for config of another object, or installment etc)+
+```
+yaml file that handles an init container:
+
+initContainers:
+  - name: wait-for-mysql
+    image: busybox
+    command: ['sh', '-c', 'until nc -z mysql 3306; do sleep 2; done;']
+
+```
+This makes WordPress wait until:
+the MySQL Pod is running
+the MySQL port is open
+the MySQL service is reachable
+
+#####################
+
+Kubernetes readiness probe and liveness probeand startup probe - These are used by kubelet( the pod manager )
+
+/bin/sh -c nc-z localhost 8095  - this command is used to see if a port is used ???
+httpget path:/health-status
+tcpSocket Port: 8095
+
+
+
 
 
 
