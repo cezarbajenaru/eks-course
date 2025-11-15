@@ -2023,8 +2023,263 @@ Service + Ingress for access
 PVC for data storage
 
 
-
 ######################################################
+
+Kubernetes Init containers:
+Because in K8s or EKS pod creation order is not guaranteed, init containers come in key points in time to intervene and create a particular creation order.
+For example Wordpress if created first, is must wait untill MySql is up and running to write it's first ever running data on it, or first user creation. In this way, a init container is similar to a boostrap in Terraform which at first creation handles a kind of order ( some object waiting for config of another object, or installment etc)+
+```
+yaml file that handles an init container:
+
+initContainers:
+  - name: wait-for-mysql
+    image: busybox
+    command: ['sh', '-c', 'until nc -z mysql 3306; do sleep 2; done;']
+
+```
+This makes WordPress wait until:
+the MySQL Pod is running
+the MySQL port is open
+the MySQL service is reachable
+
+Practically the init conainters are mostly declared with YAML files. In Terraform Registry there is no Init Conainers model
+In terraform language we use Terraform Kubernetes Provider that translates the YAML to terraform. 
+Init containers belong to Kubernetes. -> Terraform just declares the Kubernetes object.
+The Kubernetes API server and kubelet execute the init containers.!!!
+Init containers are a Kubernetes concept. Terraform does not have ‘init container blocks’ of its own, but you can define init containers inside Kubernetes resources declared through Terraform.
+
+```
+resource "kubernetes_pod" "example" {
+  metadata {
+    name = "example-pod"
+  }
+
+  spec {
+    init_container {
+      name  = "wait-for-db"
+      image = "busybox"
+      command = [
+        "sh",
+        "-c",
+        "until nc -z mysql 3306; do echo waiting; sleep 2; done;"
+      ]
+    }
+
+    container {
+      name  = "app"
+      image = "wordpress"
+    }
+  }
+}
+
+```
+
+#####################
+
+Kubernetes readiness probe and liveness probes,  startup probe - These are used by kubelet( the pod manager )
+Practically I never create probes, I just configure them an K8s via kubelet will decide when it is appropriate to deliver them
+
+Probes live in the Pod specifications under each container.
+Each container has ITS OWN three probes ( readiness, startup, liveness )
+
+Readiness probe example: In the case of Ollama, it takes around 1 minute to initialize in the container. In this case we do not want anything to send requests to Ollama. If readyness probes are configured to match the project requirements ( late start for some apps or utilities in some containers) the other containers although have started first and are ready will not be left to send any data do Ollama container
+
+Practically I never create probes(they exists as long as the Pod exists), I just configure them an K8s via kubelet will decide when it is appropriate to deliver them
+
+Kubelet periodically executes:
+Startup Probe
+
+Runs first
+Disables liveness + readiness
+Gives app time to boot
+If it fails → kubelet restarts container
+
+Readiness Probe
+kubelet checks if container is “ready”
+If fails → kubelet marks Pod as NotReady
+API server removes Pod from Service endpoints
+No traffic is sent to the pod
+
+Liveness Probe
+kubelet checks if container is alive
+If fails → kubelet kills and restarts the container
+
+How a probe manifest config looks like
+```
+readinessProbe:
+  httpGet:
+    path: /api/version
+    port: 11434
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  failureThreshold: 60    # 60 x 5 seconds = 300s max wait
+
+```
+
+Example of a pod with two containers. An app container and a utility pod (sidecar pod). Each with it's own probes
+
+```
+spec:
+  containers:
+    - name: main-app
+      readinessProbe: ...
+    - name: metrics-sidecar
+      livenessProbe: ...
+
+
+```
+```
++---------------------------------------------------------------+
+|                            POD                                |
+|                      (one IP, one network)                    |
+|                                                               |
+|   +-----------------------+    +---------------------------+  |
+|   |    Container A        |    |      Container B         |  |
+|   |  (main application)   |    |     (sidecar, logger,    |  |
+|   |                       |    |      proxy, metrics...)  |  |
+|   |                       |    |                           |  |
+|   |  Ports: 8080          |    |  Ports: 9090              |  |
+|   |                       |    |                           |  |
+|   |  readinessProbe:      |    |  readinessProbe:          |  |
+|   |    GET /ready 8080    |    |    GET /ready 9090        |  |
+|   |                       |    |                           |  |
+|   |  livenessProbe:       |    |  livenessProbe:           |  |
+|   |    GET /health 8080   |    |    GET /health 9090       |  |
+|   |                       |    |                           |  |
+|   |  startupProbe:        |    |  (optional)               |  |
+|   |    GET /startup 8080  |    |                           |  |
+|   +-----------------------+    +---------------------------+  |
+|                                                               |
++------------------------ PodSpec ------------------------------+
+
+                 |
+                 |  (kube-scheduler assigns Pod to a node)
+                 v
+
++---------------------------------------------------------------+
+|                           NODE                                |
+|                    (Worker Node in EKS)                       |
+|                                                               |
+|   +-------------------------------------------------------+  |
+|   |                      kubelet                          |  |
+|   |   (the agent that RUNS and CHECKS everything)         |  |
+|   |                                                       |  |
+|   |  - Runs init containers (sequentially)                |  |
+|   |  - Starts application containers                      |  |
+|   |  - Executes startupProbe periodically                 |  |
+|   |  - Executes readinessProbe periodically               |  |
+|   |  - Executes livenessProbe periodically                |  |
+|   |  - Restarts containers if liveness fails              |  |
+|   |  - Marks Pod Ready/NotReady based on readinessProbe   |  |
+|   |  - Controls traffic flow via Service endpoints        |  |
+|   |                                                       |  |
+|   +-------------------------------------------------------+  |
+|                                                               |
++---------------------------------------------------------------+
+
+
+```
+
+/bin/sh -c nc-z localhost 8095  - this command is used to see if a port is used ???
+httpget path:/health-status
+tcpSocket Port: 8095
+
+
+##############################################################################
+
+Resources and limits ( requests, )
+
+Requests:  ( the minimum guaranteed of resources a container gets in a POD) If the node does not have these resources the Pod and containers do no get scheduled
+
+Practically we are defining here what is the minimum of RAM and CPU that a container needs to actually run.
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+This means that a conainer needs at least 500Mh to run and minimum of 512Mb of ram to run
+If the node does not have this much free, the containers inside the pod will not run 
+
+Limits: The maximum allowed for a container in a Pod to use:
+
+resources:
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+If the container uses more than this then it will be killed. 
+
+If a container along other running container dies, kubelet will attempt to restart the container - the Pod does not die with everything in it. 
+If all of the containers in the pod die, then the POD will attempt to restart if set to ALWAYS restart
+
+Init containers are differentL
+Init containers are unique:
+
+They run before all app containers
+They run sequentially
+If ANY init container fails → the Pod never starts
+Pod status becomes:
+Init:CrashLoopBackoff
+
+Why it is designed this way:
+
+Because Pods often use sidecars:
+logging sidecar
+metrics exporter
+envoy/istio sidecar
+fluent-bit
+git-sync
+secrets-sync
+cert-refresh sidecar
+proxy containers
+If a sidecar dies, your main app should keep running.
+So Kubernetes keeps the Pod alive and only restarts that container.
+
+CLUSTER SIZE MUST BE ACCORDINGLY ( we need a way to calculate this)
+
+#####################################################################
+
+Namespaces - see what you written earlier about namespaces 
+
+Persisten volumes for example cannot be wrapped by a namespace, they are generaly defined
+
+
+❗ Important detail
+
+Namespaces are created with the Kubernetes provider in Terraform,
+not the AWS provider.
+
+Meaning:
+
+You must first create the EKS cluster
+
+Then configure the Kubernetes provider connection
+
+Then Terraform can create namespaces and workloads
+
+BEST PRACTICE:
+
+Managing namespaces through Terraform is recommended if:
+
+✔ You want GitOps-style infrastructure control
+✔ You deploy workloads with Terraform
+✔ You need strict namespace consistency
+✔ You want namespaces to have labels/annotations tied to infra
+✔ You're building a platform design (EKS production workflows)
+
+Do NOT manage namespaces by kubectl AND Terraform at the same time.
+
+Because the namespace must be owned by one system (Terraform state).
+
+TO LEARN limit spaces in namespaces. Assign RAM and CPU per namespace, meaning you can have different allocated resources per Dev, Staging and Prod, meaning that Each Dev, Staging, Prod is a separate namespace
+
+Resource quota for namespaces???
+
+
+
+
+
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 TO DO NEXT: # this will vary from day to day 
 
 Check cursor for the last indications on CSI module
@@ -2047,40 +2302,10 @@ Bonus : play in "kind" with PV, PVC, Mysql, etc
 Generate a YAML file of a certain image (Dry run is the best way to generate a skeleton, which can then be modified as per the requirements) 
 ‘kubectl create deployment [deployment-name] --image=[image-name] -n [namespace] --dry-run=client -o yaml > d.yaml’
 
-####################################################
-Kubernetes Init containers:
-Because in K8s or EKS pod creation order is not guaranteed, init containers come in key points in time to intervene and create a particular creation order.
-For example Wordpress if created first, is must wait untill MySql is up and running to write it's first ever running data on it, or first user creation. In this way, a init container is similar to a boostrap in Terraform which at first creation handles a kind of order ( some object waiting for config of another object, or installment etc)+
-```
-yaml file that handles an init container:
-
-initContainers:
-  - name: wait-for-mysql
-    image: busybox
-    command: ['sh', '-c', 'until nc -z mysql 3306; do sleep 2; done;']
-
-```
-This makes WordPress wait until:
-the MySQL Pod is running
-the MySQL port is open
-the MySQL service is reachable
-
-#####################
-
-Kubernetes readiness probe and liveness probeand startup probe - These are used by kubelet( the pod manager )
-
-/bin/sh -c nc-z localhost 8095  - this command is used to see if a port is used ???
-httpget path:/health-status
-tcpSocket Port: 8095
 
 
-
-
-
-
-Create Kubernetes Manifests for User Management Microservice Deployment
 Kubernetes secrets?
-Kubernetes ini containers?
+
 
 To asess if needed!: 
 No RDS MySQL infrastructure
@@ -2091,9 +2316,9 @@ No PersistentVolumeClaims for WordPress media
 No Secrets for database credentials
 No ConfigMaps for WordPress configuration
 
-##################################
+
 REMINDERS: # these lines constantly change also in relation to project evolutiuon
-#################################
+
 
 EC2 in private subnet needs → NAT Gateway or VPC Endpoint.
 
@@ -2107,4 +2332,12 @@ Public access (e.g., website) needs → ALB in public subnet.
 
 
 
-###################################
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+
+
+
+
+
+
+
