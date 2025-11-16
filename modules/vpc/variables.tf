@@ -16,3 +16,9 @@ variable "vpc_external_nat_ip_ids" {
 }
 
 variable "vpc_tags" {type = map(string)}
+
+# we need the following variable in order for ALB to be able to find the subnets
+variable "cluster_name" {
+  type = string
+  description = "Name of the EKS Cluster"
+  }

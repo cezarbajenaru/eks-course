@@ -194,3 +194,11 @@ ps aux --sort=-%mem | grep ollama
 
 Continue  in OLLAMA TO CHAT
 
+
+Use my AMD GPU
+
+AMD GPU + Docker = ROCm Docker images
+
+docker run --device=/dev/kfd --device=/dev/dri \
+    --group-add video \
+    rocm/pytorch:latest python -c "import torch; print(torch.cuda.is_available())"

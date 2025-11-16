@@ -43,10 +43,10 @@ variable "kubernetes_version" {
   description = "Version of the Kubernetes cluster"
 }
 
-variable "eks_managed_node_groups" {type = map(object({
-    ami_type = string
-    instance_types = list(string)
-    min_size = number
-    max_size = number
-    desired_size = number
-}))}
+variable "eks_managed_node_groups" { type = map(object({
+  ami_type       = string
+  instance_types = list(string)
+  min_size       = number
+  max_size       = number
+  desired_size   = number
+})) }
