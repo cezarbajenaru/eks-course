@@ -26,7 +26,7 @@ resource "aws_iam_role_policy_attachment" "ebs_csi_policy" {
 }
 
 resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name             = var.cluster_name
+  cluster_name             = var.cluster_name# CSI driver is the only module that uses the cluster_name variable which is an output of the EKS module because it is installed after the EKS module exists
   addon_name               = "aws-ebs-csi-driver"
   addon_version            = var.addon_version
   service_account_role_arn = aws_iam_role.ebs_csi_driver_role.arn

@@ -9,7 +9,6 @@ module "vpc" {  #  this module downloads terraform vpc module from the registry 
   private_subnets = var.vpc_private_subnets
   public_subnets  = var.vpc_public_subnets
 
-  enable_vpn_gateway  = var.vpc_enable_vpn_gateway
   enable_nat_gateway  = var.vpc_enable_nat_gateway
   single_nat_gateway  = var.vpc_single_nat_gateway # because we have only one availability zone in this project
   reuse_nat_ips       = var.vpc_reuse_nat_ips                   # Skip creation of EIPs for the NAT Gateways
@@ -21,12 +20,12 @@ module "vpc" {  #  this module downloads terraform vpc module from the registry 
 #Later when ALB runs it will use these tags to find the subnets and create the ALB
   public_subnet_tags = {
     "kubernetes.io/role/elb"                    = "1"
-    "kubernetes.io/cluster/${var.cluster_name}" = "shared" #cluster name is passed from main.tf to avoid circular dependency
+    "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared" #cluster name is passed from main.tf to avoid circular dependency
   }
 
   private_subnet_tags = {
     "kubernetes.io/role/internal-elb"           = "1"
-    "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+    "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
   }
   
 #Global VPC tags

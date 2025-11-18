@@ -2284,6 +2284,8 @@ Mental model of AWS execution untill ALB is finished
 
 %%% Steps to actually configure and deploy ALB after S3State,VPC,EKS,EBS are deployed and configured %%%
 
+Installing the AWS Load Balancer controller
+
 Tag the subnets in VPC module
 subnets used in the VPC need tag namings in order to be recognized and used by the ALB
 These tags are in conformity with AWS documentation here - https://docs.aws.amazon.com/eks/latest/userguide/alb-ingress.html

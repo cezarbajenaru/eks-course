@@ -5,7 +5,6 @@ variable "vpc_azs" { type = list(string)}
 variable "vpc_private_subnets" { type = list(string)}
 variable "vpc_public_subnets" { type = list(string)}
 
-variable "vpc_enable_vpn_gateway" {type = bool}
 variable "vpc_enable_nat_gateway" {type = bool}
 variable "vpc_single_nat_gateway" {type = bool}
 variable "vpc_reuse_nat_ips" {type = bool}
@@ -15,10 +14,14 @@ variable "vpc_external_nat_ip_ids" {
   description = "List of EIP IDs to use for NAT gateways. Required when vpc_reuse_nat_ips is true"
 }
 
+variable "ingress_cidr_blocks" {
+  type = list(string)
+}
+
 variable "vpc_tags" {type = map(string)}
 
 # we need the following variable in order for ALB to be able to find the subnets
-variable "cluster_name" {
+variable "eks_cluster_name" {
   type = string
   description = "Name of the EKS Cluster"
   }

@@ -24,8 +24,20 @@ locals {
 }
 
 provider "aws" {
-  region = "eu-central-1"
+  region = local.region
 }
+
+#creates a fixed EIP for the NAT Gateway and lets private subnets reach the internet through the NAT Gateway / if not, node groups do not reach internet from private subnets
+#this gets created before VPC so VPC can have the EIP as input
+resource "aws_eip" "nat" {
+  domain = "vpc"
+
+  tags = {
+    Name = "eks-nat-eip"
+  }
+}
+
+
 
 module "vpc" {
   source   = "./modules/vpc"
@@ -36,17 +48,23 @@ module "vpc" {
   vpc_private_subnets = var.vpc_private_subnets
   vpc_public_subnets  = var.vpc_public_subnets
 
-  vpc_enable_vpn_gateway = var.vpc_enable_vpn_gateway
+
   vpc_enable_nat_gateway = var.vpc_enable_nat_gateway
   vpc_single_nat_gateway = var.vpc_single_nat_gateway # because we have only one availability zone
   vpc_reuse_nat_ips      = var.vpc_reuse_nat_ips      # Skip creation of EIPs for the NAT Gateways
-  #vpc_external_nat_ip_ids = aws_eip.nat[*].id       # IPs specified here as input to the module
+  
+  vpc_external_nat_ip_ids = [aws_eip.nat.id]#aws_eip is AWS resource name, nat is the name I gave to the resource and id is the output of AWS resource
 
+
+  ingress_cidr_blocks      = var.ingress_cidr_blocks
   vpc_tags = var.vpc_tags
 
-  # Pass cluster_name from tfvars (not from EKS output to avoid circular dependency)
+  # Pass eks_cluster_name from tfvars (not from EKS output to avoid circular dependency)
   # VPC needs to be created before EKS, but subnet tags need cluster_name
-  cluster_name = var.name
+  eks_cluster_name = var.eks_cluster_name
+
+
+
 }
 
 #security group module
@@ -56,7 +74,7 @@ module "sg_eks_project" {
   sg_eks_project           = var.sg_eks_project
   description              = var.description
   ingress_rules            = var.ingress_rules
-  ingress_with_cidr_blocks = var.ingress_with_cidr_blocks
+  ingress_cidr_blocks      = var.ingress_cidr_blocks
   tags                     = var.tags
 }
 
@@ -64,7 +82,7 @@ module "sg_eks_project" {
 module "eks" {
   source = "./modules/eks"
 
-  name               = var.name
+  eks_cluster_name     = var.eks_cluster_name
   kubernetes_version = var.kubernetes_version
 
   vpc_id                   = module.vpc.vpc_id
@@ -73,20 +91,21 @@ module "eks" {
 
   eks_managed_node_groups = var.eks_managed_node_groups
   tags                    = var.tags
+  
 }
 
 module "csi_driver" {
   source            = "./modules/csi_driver"
-  cluster_name      = module.eks.cluster_name
+  cluster_name      = module.eks.cluster_name#csi driver is installed after EKS module exists, so we need to use the EKS cluster name which is an output of the EKS module
   oidc_provider_arn = module.eks.oidc_provider_arn
   oidc_provider_url = module.eks.cluster_oidc_issuer_url
 }
 
 #mysql database creation
-
+#KUBERNETES PROVIDERS bellow(after EKS module exists)
 
 data "aws_eks_cluster_auth" "cluster" { #this asks AWS for a authentication token for the cluster_name
-  name = module.eks.cluster_name
+  name = module.eks.cluster_name#cluster_name is an output of the EKS module and is used just like in CSI module
 }
 
 provider "kubernetes" {
@@ -96,33 +115,33 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
     token                  = data.aws_eks_cluster_auth.cluster.token
   }
 }
 
-resource "helm_release" "mysql" { #this is a helm release for the mysql chart
+resource "helm_release" "mysql" {
   name      = "mysql"
   namespace = "default"
 
   repository = "https://charts.bitnami.com/bitnami"
   chart      = "mysql"
-  version    = ">= 9.0.0"
+  version    = "14.0.3"
 
-  set {
-    name  = "primary.persistence.storageClass"
-    value = "gp3"
-  }
-
-  set {
-    name  = "primary.persistence.size"
-    value = "20Gi"
-  }
-
-  set {
-    name  = "auth.rootPassword"
-    value = "SuperStrongPassword123" # change before sharing
-  }
+  set = [
+    {
+      name  = "primary.persistence.storageClass"
+      value = "gp3"
+    },
+    {
+      name  = "primary.persistence.size"
+      value = "20Gi"
+    },
+    {
+      name  = "auth.rootPassword"
+      value = "SuperStrongPassword123"
+    }
+  ]
 }

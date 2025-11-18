@@ -2,7 +2,7 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 21.0"
 
-  name               = var.name
+  name               = var.eks_cluster_name
   kubernetes_version = var.kubernetes_version
 
 #core dns and kube-proxy do not have to be created before the compute. There are not pods anyway

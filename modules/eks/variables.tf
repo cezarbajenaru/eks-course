@@ -1,7 +1,3 @@
-variable "name" {
-    type = string
-}
-
 variable "kubernetes_version" {
     type = string
 }
@@ -28,4 +24,8 @@ variable "eks_managed_node_groups" {type = map(object({
 
 variable "tags" {
     type = map(string)
+}
+
+variable "eks_cluster_name" {
+    type = string
 }

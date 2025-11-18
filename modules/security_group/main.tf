@@ -6,6 +6,6 @@ module "sg_eks_project" {
   vpc_id      = var.vpc_id  # VPC ID is passed from root module as a variable
 
   ingress_rules            = var.ingress_rules
-  ingress_with_cidr_blocks = var.ingress_with_cidr_blocks
+  ingress_cidr_blocks = var.ingress_cidr_blocks
   tags = var.tags
 }
