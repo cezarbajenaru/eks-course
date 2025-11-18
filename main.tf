@@ -94,6 +94,52 @@ module "eks" {
   
 }
 
+###ALB controller install with HELM###
+module "alb_irsa" {
+  source            = "./modules/alb_irsa"
+  cluster_name      = var.eks_cluster_name
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.cluster_oidc_issuer_url
+}
+
+resource "helm_release" "aws_load_balancer_controller" {#called helm chart to install the ALB controller
+  name       = "aws-load-balancer-controller"
+  namespace  = "kube-system"
+
+  repository = "https://aws.github.io/eks-charts"
+  chart      = "aws-load-balancer-controller"
+  version    = "1.7.2"
+
+
+set = [
+  {
+    name  = "clusterName"
+    value = var.eks_cluster_name
+  },
+  {
+    name  = "serviceAccount.create"
+    value = "false"
+  },
+  {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  },
+  {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = module.alb_irsa.alb_irsa_role_arn
+  },
+  {
+    name  = "region"
+    value = "eu-central-1"
+  },
+  {
+    name  = "vpcId"
+    value = module.vpc.vpc_id
+  }
+]
+}
+
+
 module "csi_driver" {
   source            = "./modules/csi_driver"
   cluster_name      = module.eks.cluster_name#csi driver is installed after EKS module exists, so we need to use the EKS cluster name which is an output of the EKS module
