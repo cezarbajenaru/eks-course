@@ -2170,7 +2170,36 @@ Resource quota for namespaces???
 
 ################################################################################
 
+Before reading about ALB itself, we must understand that Kubernetes ( or EKS) has it's own Service Types ( ClusterIP, Nodeport, Loadbalancer) but the Loadbalancer inside k8s is not an AWS load balancer or a network load balancer at all -> they operate inside the cluster .
+The real hardware/serice lives in AWS (which uses a controller installed in k8s - AWS Loadbalancer controller to com with EKS)
+ALB works on Layer 7 of the OSI and NLB on layer 4 of OSI
+
+Cluster service types:
+  ClusterIP: 
+    Internal only
+    It is set as Default service 
+    Virtual IP inside cluster
+    Not a real Loadbalancer
+  NodePort:
+    Opens a port on every worker node
+    Not a real Loadbalancer
+    Only exposes pods via node ports
+  LoadBalancer:
+    Special type
+    Asks cloud provider to create a load balancer
+    in EKS is asks to create a NLB by default
+
+
+Internet → AWS DNS -> Route53 → ALB (L7 uses HTTP protocol) → Target Groups → Worker Nodes → Pods
+Internet → AWS DNS -> Route53 → NLB (L4) → Worker Nodes → Pods
+
+Example workflow:
+  There are two enabled Availability Zones, with two targets in Availability Zone A and eight targets in Availability Zone B. Clients send requests, and Amazon Route 53 responds to each request with the IP address of one of the load balancer nodes. Based on the round robin routing algorithm, traffic is distributed such that each load balancer node receives 50% of the traffic from the clients. Each load balancer node distributes its share of the traffic across the registered targets in its scope.
+
+
 AWS ALB
+
+Usefull to revisit: https://www.youtube.com/watch?v=VFwLffElIgc
 
 In EKS:          #in Normal Kubernetes in EC2 these must be setup along many others like etcd, etc
   IAM Roles for Service Accounts (IRSA) are automatically integrated
@@ -2202,7 +2231,7 @@ What ALB actually has:
     The default routing algorithm is round robin, specify something else if you want
   Routing is performed independently for each target group, even when a target is registered with multiple target groups
 
-
+TARGET GROUPS
 How Kubernetes and AWS talk to each other -> AWS LoadBalancer Controller:
   A target group is a list of POD IP's exposed by kubernetes service ( A target group does not have it's own IP - is a list of endpoints!!!)
     [target1_IP:port, target2_IP:port, target3_IP:port, ...]
@@ -2213,7 +2242,96 @@ How Kubernetes and AWS talk to each other -> AWS LoadBalancer Controller:
       Reconciles continuously Desired state vs Current state -> This is a state sync loop. ( the loop has no interval, Inside Kubernetes, controllers subscribe to API change streams: any service added, updated, scaled, rescheduled, pod IP changed, intress created/updated = event that the loops reads - controller receives and it reacts - Inside Kubernetes, controllers subscribe to API change streams) Every 10 minutes there is a default general sync anyway
       Kubernetes does not tell ALB how many pods exist. 
       
+      A target group contains
+        a list of targets
+        a health chech definition for the list of targets
+        protocol and port settings
 
+
+TARGET Types ( different to target groups ):
+
+Before we understand target types we need to understand Kubernetes services
+  ClusterIP ( mapped to IP )
+  And Instance ( mapped to Node port)
+  
+
+
+The configuration of what is in the target groups - meaning the targets themselves
+```
+The bellow is an explanation of K8s service possibilites
+https://docs.aws.amazon.com/eks/latest/best-practices/vpc-cni.html
+ALB target type set to "instance" 
+  ALB sends traffic to nodes -> nodes expose NodePorts -> Service must be set to Nodeport
+
+  You always reach PODs though the node network stack but 
+  Choosing ClusterIP (ip) does not mean bypassing the whole Node - Traffic always goes through the node.
+  HOW traffic actually gets there is established by one of the two possibilites:
+    ClusterIP or Nodeport
+NodePort (Instance): (ALB registers node IP's)
+  Packet arrives at node ENI
+    Kubeproxy listens on NodePort
+      forwards to POD
+ClusterIP (IP) (the most used)
+  Packet arrives at node ENI ( Elastic Network Interface)
+    AWS VPC CNI routes directly to pod IP (uses pod IP's from Endpoints)
+      POD receives traffic
+
+      No NodePort needed, works in Fargate, ALB registers pod IP's?, uses Pod ip's from Endpoints
+
+    Cluster IP is a service abstraction, a way for kubernetes to track pod Endpoints
+      ClusterIP creates Endpoints of the POD's like this:
+      10.123.4.21:8080
+      10.123.7.44:8080
+      10.123.9.88:8080
+    AWS LB Controller reads the ClusterIP list and registers the POD in ALB target group
+
+    The ALB can route to POD IP's because of AWS VPC CNI ( container network interface)
+      Pod lives behind Node ENI
+      Pod IP is routable inside VPC
+      Node network stack routes packet to pod
+
+      No kubeproxy, no NodePort listener, ALB can target the pod IP's
+
+ALB->
+ → Node ENI
+   → VPC CNI routing
+     → Pod IP
+Why is it better to use ClusterIP
+Required for Fargate
+Better autoscaling
+No NodePort range exhaustion
+No cross-AZ traffic penalties
+Cleaner security boundaries
+ALB health checks hit pods, not nodes
+!!!AWS VPC CNI is responsible for connecting pods to ALB directly through a list of pod IPs created into the ALB.!!!
+
+```
+
+ALB target type set to "IP" (just like in our project)
+  ALB sends traffic directly to POD IP's -> Service should be set to ClusterIP
+  Nodeport is not needed
+  When target type is IP, you can specify IP adresses from one of the vpc the CIDR blocks
+
+ALB target type set to "lambda" -> 
+
+```
+| ALB Target Mode | Service Type Required | Why                       |
+| --------------- | --------------------- | ------------------------- |
+| **instance**    | NodePort              | ALB targets nodes         |
+| **ip**          | ClusterIP             | ALB targets pods directly |
+
+```
+
+Rules to follow
+- ALB ingress creates AWS ALB ( ingress is just a set of rules of K8s)
+- Controller watches Kubernetes ingress
+- ALB routes traffic to either:
+   nodeports (instance mode)
+   pod IPs (ip mode)
+- API server is only for cluster management
+- NAT is only for outbound internet
+- Nodes and pods live in private subnets
+- ALB lives in public subnets
 
   ALB (Static URL/public) -> Listerner rule -> Target groups ( the list of endpoints) -> POD running and exposed by service
 
@@ -2246,7 +2364,7 @@ It must have the following installed :
   After those are setup, ALB controller becomes just a resource in TF ( helm release )
   resource "helm_release" "aws_load_balancer_controller" { ... }
 
-Final short thoughts:
+AWS LB controller install policy with helm ( it needs it in the module/alb_irsa/iam-policy.jason ) - https://github.com/kubernetes-sigs/aws-load-balancer-controller/blob/main/docs/install/iam_policy.json
 AWS Load Balancer Controller:
  Runs inside Kubernetes, not AWS.
  Not built into EKS, but maintained by AWS.
@@ -2258,6 +2376,12 @@ Watches Ingress + Service + EndpointSlice.
 Updates target group membership in real-time.
 No polling interval. Safety resync ~10 min.
 
+With Application Load Balancer at cross zone level, it is always activated. Cross zone target groups can be deactivated
+For NLB ( network load balancer) and Gateway balancers, the cross zone is always disabled by default but can be activated.
+
+Zonal Shift is an Amazon application recovery controller (ARC) capability that let's you move the ALB from a affected AZ to another functional one
+https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/how-elastic-load-balancing-works.html
+
 The AWS Load Balancer Controller is not built into EKS.
 It must be installed manually on all Kubernetes clusters including in EKS
 
@@ -2265,6 +2389,14 @@ For FARGATE ingress controller does not exist because you do no see the nodes ( 
 When you install the AWS Load Balancer Controller in a Kubernetes cluster, it will create AWS resources only when you create Ingress or Service objects that require them.
   The controller itself does NOT create AWS resources.
   When you create certain Kubernetes objects (like Ingress or Service of type LoadBalancer), the AWS Load Balancer Controller reacts and creates the necessary AWS resources (ALB, target groups, listeners, security groups, etc.). It watches ingres through API server of the K8 cluster
+
+The Service object is in Kubernetes.
+  The Load Balancer resource is in AWS.
+  You define the intent inside the cluster → cloud provider fulfills it outside.
+  This is why the documentation always says:
+    Service type LoadBalancer asks the cloud provider to create an external Load Balancer.
+
+
 
 Mental model of AWS execution untill ALB is finished
 
@@ -2280,6 +2412,31 @@ Mental model of AWS execution untill ALB is finished
 (5) ALB Controller reads subnet tags
 
 ```
+INGRESS
+```
+Ingress = Routing Rules
+Controller = Behavior
+AWS = Creates ALB Only If ALB controller is installed
+EKS = Creates NLB Only If Service type=LoadBalancer
+```
+Ingress is just a set of roting rules in Kubernetes (EKS)
+The ingress controller you install interprets the Ingress rules in Kubernetes
+
+  Ingress = just routing rules
+  ALB Controller = interprets ingress → creates ALB
+
+```
+| Resource                      | What it is         | Who creates LB               | LB Type     |
+| ----------------------------- | ------------------ | ---------------------------- | ----------- |
+| **Ingress object**            | just routing rules | NONE by itself               | NONE        |
+| **Ingress + ALB Controller**  | L7 routing + ALB   | AWS LB Controller            | **ALB**     |
+| **Service type=LoadBalancer** | L4 LB request      | AWS Cloud Controller Manager | **NLB**     |
+| **Nginx Ingress**             | internal proxy     | no AWS LB                    | Nginx pod   |
+| **Traefik Ingress**           | internal proxy     | no AWS LB                    | Traefik pod |
+
+
+
+
 
 
 %%% Steps to actually configure and deploy ALB after S3State,VPC,EKS,EBS are deployed and configured %%%

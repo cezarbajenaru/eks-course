@@ -191,3 +191,17 @@ resource "helm_release" "mysql" {
     }
   ]
 }
+
+
+module "wordpress" {
+  source = "./modules/wordpress"
+
+  providers = {
+    helm = helm
+    kubernetes = kubernetes
+  }
+
+  namespace     = "wordpress"
+  cluster_name  = module.eks.cluster_name
+  domain_name   = var.wordpress_domain# this domain_name variable ( which is in defined in tfvars and variables.tf) is passed to the wordpress module and then used in modules/wordpress/outputs.tf
+}

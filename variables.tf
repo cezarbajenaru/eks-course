@@ -42,3 +42,8 @@ variable "eks_cluster_name" {
   type = string
   description = "Kubernetes cluster name"#it needs a cluster name to be able to create the ALB, a separate one from the EKS cluster name because EKS is not yet created when the VPC module is applied
 }
+
+variable "wordpress_domain" {
+  type = string
+  description = "Wordpress domain name"#used in the wordpress module to create the ingress and used in domain_name root/main.tf
+}

@@ -2,7 +2,7 @@ resource "aws_iam_policy" "alb_policy" {
   name        = "${var.cluster_name}-alb-controller"
   description = "Policy for ALB Load Balancer Controller"
 
-  policy = file("${path.module}/iam-policy.json")
+  policy = file("${path.module}/iam_policy.json") # reference to the policy file in module
 }
 
 resource "aws_iam_role" "alb_irsa" {
@@ -11,7 +11,7 @@ resource "aws_iam_role" "alb_irsa" {
   assume_role_policy = data.aws_iam_policy_document.assume_role.json
 }
 
-data "aws_iam_policy_document" "assume_role" {
+data "aws_iam_policy_document" "assume_role" {#aws_iam_policy_document.assume_role from above is defined here
   statement {
     effect = "Allow"
 
@@ -32,5 +32,5 @@ data "aws_iam_policy_document" "assume_role" {
 
 resource "aws_iam_role_policy_attachment" "alb_attachment" {
   policy_arn = aws_iam_policy.alb_policy.arn
-  role       = aws_iam_role.alb_irsa.name
-}
+  role       = aws_iam_role.alb_irsa.name #this acceses aws_iam_role with the name alb_irsa from above and acceses the constructed name: alb-irsa-<cluster_name>
+}#and this is how a role name is created
