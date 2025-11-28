@@ -2478,7 +2478,19 @@ PVC for data storage
 
 ######################################################
 
+Monitoring and Observability
+EKS IS outputiing these by default:
 
+```
+| Feature                                          | Provided by EKS                      | Notes                                 |
+|--------------------------------------------------|--------------------------------------|---------------------------------------|
+| Node metrics (CPU/Memory)                        | Basic CloudWatch (EC2-level only)    | No pod-level visibility               |
+| Control plane logs (API server, scheduler, etc.) | Can be enabled manually              | Not enabled by default                |
+| Pod logs                                         | ❌ Not sent anywhere by default       | Requires logging agent to ship logs   |
+
+
+```
+To Eenable 
 
 
 
