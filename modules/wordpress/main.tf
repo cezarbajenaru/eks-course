@@ -3,7 +3,7 @@ terraform {#this is for terraform to use the helm provider not kubernetes embede
     helm = {
       source  = "hashicorp/helm"
     }
-    kubernetes = {
+    kubernetes = {# this should not be needed as it is embedded in the helm provider but just in case
       source  = "hashicorp/kubernetes"
     }
   }
