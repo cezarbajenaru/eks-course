@@ -1,12 +1,21 @@
-variable "vpc_id" {type = string}
-variable "security_group_id" {type = string}  # Fixed: was security_group_ids (plural), module expects singular
-
-# Endpoints structure is flexible - gateway endpoints (S3, DynamoDB) don't need subnet_ids
-# Interface endpoints (SNS, SQS, etc.) need subnet_ids and optional subnet_configurations
-# Using 'any' type for maximum flexibility since structure varies by endpoint type
-variable "endpoints" {
-  type        = map(any)
-  description = "Map of VPC endpoints. Gateway endpoints (S3, DynamoDB) only need service. Interface endpoints need subnet_ids."
+variable "vpc_id" {
+  type        = string
+  description = "VPC ID where endpoints will be created"
 }
 
-variable "tags" {type = map(string)}
+variable "private_route_table_ids" {
+  type        = list(string)
+  description = "List of private subnet route table IDs for gateway endpoints"
+}
+
+variable "s3_bucket_arns" {
+  type        = list(string)
+  description = "List of S3 bucket ARNs to allow access via VPC endpoint"
+  default     = []
+}
+
+variable "tags" {
+  type        = map(string)
+  description = "Tags to apply to VPC endpoints"
+  default     = {}
+}

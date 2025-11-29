@@ -89,6 +89,8 @@ output "s3_bucket_arn" {
   value = module.s3_bucket_for_logs.s3_bucket_arn
 }
 
-output "aws_s3_bucket_versioning_status" {
-  value = module.s3_bucket_for_logs.aws_s3_bucket_versioning_status
+
+#modules/monitoring/sns/ SNS module outputs
+output "topic_arn" {
+  value = module.sns.topic_arn
 }

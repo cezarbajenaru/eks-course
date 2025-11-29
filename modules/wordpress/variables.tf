@@ -12,3 +12,8 @@ variable "domain_name" {
   type        = string
   description = "Domain name for WordPress ingress"
 }
+
+variable "alb_logs_s3_bucket" {
+  type        = string
+  description = "S3 bucket name for ALB access logs"
+}

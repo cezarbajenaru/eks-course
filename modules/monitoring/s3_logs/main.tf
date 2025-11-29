@@ -14,4 +14,6 @@ module "s3_bucket_for_logs" {
 #These two lines tie the ALB to the S3 bucket / they are needed for ALB services to write logs to the bucket
   attach_elb_log_delivery_policy = true
   attach_lb_log_delivery_policy  = true
+
+  tags = var.tags
 }

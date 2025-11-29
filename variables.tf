@@ -71,8 +71,6 @@ variable "s3_alb_logs_bucket_name" {
 }
 
 
-
-
 #modules/monitoring/alarms/ alarms variables
 
 variable "cpu_alarm_name" {
@@ -90,9 +88,10 @@ variable "cpu_metric_name" {
   type        = string
 }
 
-variable "cpu_create_metric_alarm" {
-  description = "Whether to create the CPU metric alarm"
-  type        = bool
+
+variable "cpu_comparison_operator" {
+  description = "The comparison operator of the CPU metric"
+  type        = string
 }
 
 variable "cpu_period" {
@@ -119,4 +118,15 @@ variable "cpu_alarm_actions" {
   description = "SNS topic ARN to send the alarm to - The actions to take when the alarm is triggered"
   type        = list(string)
   default     = []
+}
+
+#modules/monitoring/sns/ SNS variables
+variable "sns_name" {
+  description = "The name of the SNS topic"
+  type        = string
+}
+
+variable "email" {
+  description = "The email address to send the SNS notifications to"
+  type        = string
 }

@@ -2498,18 +2498,22 @@ To Eenable
 &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 TO DO NEXT: # this will vary from day to day 
 
-Check cursor for the last indications on CSI module
-0. terraform apply                 # create EKS + CSI
-aws eks update-kubeconfig
-kubectl apply storageclass-gp3
-terraform apply                 # MySQL deploy
-helm install wordpress ...      # or helm_release
-kubectl apply ingress.yaml      # triggers ALB
+Issues to address
+Security: hardcoded MySQL password
+   value = "SuperStrongPassword123"  # Line 191 in main.tf
+Recommendation: Use a variable or AWS Secrets Manager.
+Formatting: some files need terraform fmt
+20+ files need formatting (cosmetic, not functional)
+Provider versions: missing in root versions.tf
+Helm and Kubernetes providers should be declared in root versions.tf for consistency
+Unused modules: observability/ and storage/ exist but aren't used
+Fine if planned for later; consider documenting or removing if not needed
 
 0. Add a Readme.de with project purpose and tech used. Who runs who
-1. continue in with S3's and their endpoints???. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
-2. Link data to Ollama ( instructions in learning doc)\
-3. Some diagram featuring EBS CSI -> storageclass -> PVC
+Questions:
+
+1. S3's and their endpoints???. THe s3's must be checked with TF registry and then declared correctly inside vcp_endpoints. What reouting tables are we allocating???
+2. Some diagram featuring EBS CSI -> storageclass -> PVC
   ALB controller -> Ingress flow
 
 

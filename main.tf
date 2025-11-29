@@ -205,6 +205,7 @@ module "wordpress" {
   namespace    = "wordpress"
   cluster_name = module.eks.cluster_name
   domain_name  = var.wordpress_domain # this domain_name variable ( which is in defined in tfvars and variables.tf) is passed to the wordpress module and then used in modules/wordpress/outputs.tf
+  alb_logs_s3_bucket = module.s3_bucket_for_logs.s3_bucket_id # Enable ALB access logs to S3
 }
 
 #modules/monitoring/log_group/ log group module
@@ -215,28 +216,62 @@ module "log_group" {
 }
 
 
-#monitoring module
+#monitoring module used DIRECTLY from the registry into root/main.tf - NO customization - does not have a modules/alarms module
+#this module is wired only in root/main.tf root/variables.tf root/outputs.tf
 module "cpu_alarm" {
-  source = "terraform-aws-modules/cloudwatch/aws//modules/metric-alarm"
-
+  source  = "terraform-aws-modules/cloudwatch/aws//modules/metric-alarm"
+  version = "5.7.2" #belongs where you call source from the intenet
   #bellow are the variables for the alarm, comes from terraform.tfvars in monitoring section
   alarm_name          = var.cpu_alarm_name
   alarm_description   = var.cpu_alarm_description
-  comparison_operator = "GreaterThanThreshold"
+  comparison_operator = var.cpu_comparison_operator
   metric_name         = var.cpu_metric_name
-  create_metric_alarm = var.cpu_create_metric_alarm
   period              = var.cpu_period             # the minutes for the metric to be collected
   evaluation_periods  = var.cpu_evaluation_periods # the minutes for threshold to be met
   threshold           = var.cpu_threshold          #triggers when over 80% CPU usage for more than 2 minutes
   statistic           = var.cpu_statistic          #uses an average value of the metric (the 80% in 2 minutes) and compares it to the threshold
+  dimensions = {#this has no place into root/main.tf because it is a submodule
+    ClusterName = var.eks_cluster_name
+  }
 
-  alarm_actions = var.cpu_alarm_actions #Slack alerts to SNS topic defined in terraform.tfvars in monitoring section
+  #connecting the Alarm to the SNS topic happens with alarm_actions variable
+  #Whenever the alarm status changes to ALARM
+  #CloudWatch sends a JSON event → SNS
+  #SNS forwards event to subscribed endpoints (email, etc.)
+  alarm_actions = [module.sns.topic_arn] 
 }
 
 module "s3_bucket_for_logs" {
-  source = "terraform-aws-modules/s3-bucket/aws"
+  source = "./modules/monitoring/s3_logs"
 
-  bucket = var.s3_alb_logs_bucket_name #from tfvars
+  s3_alb_logs_bucket_name = var.s3_alb_logs_bucket_name #from tfvars
 
+  tags = var.tags
+}
+
+# VPC Endpoints - Allow private subnets to access S3 and DynamoDB without NAT Gateway
+# Gateway endpoints are FREE and reduce NAT Gateway data transfer costs
+# Placed after S3 bucket creation so we can reference the bucket ARN
+module "vpc_endpoints" {
+  source = "./modules/vpc_endpoints"
+
+  vpc_id                  = module.vpc.vpc_id
+  private_route_table_ids = module.vpc.private_route_table_ids
+
+  # S3 bucket ARNs for endpoint policy (terraform state bucket + ALB logs bucket)
+  s3_bucket_arns = [
+    "arn:aws:s3:::plastic-memory-terraform-state",
+    "arn:aws:s3:::plastic-memory-terraform-state/*",
+    module.s3_bucket_for_logs.s3_bucket_arn,
+    "${module.s3_bucket_for_logs.s3_bucket_arn}/*"
+  ]
+
+  tags = var.tags
+}
+
+module "sns" {
+  source = "./modules/monitoring/sns"
+  sns_name = var.sns_name
+  email = var.email
   tags = var.tags
 }

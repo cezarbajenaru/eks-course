@@ -48,6 +48,11 @@ resource "helm_release" "wordpress" {
     name  = "ingress.hostname"
     value = var.domain_name
   },
+  {#this is the line that connects the ALB to the S3 bucket for logs
+    #ALB access logs are enabled and the bucket name is the one specified in the variables.tf file
+    name  = "ingress.annotations.alb\\.ingress\\.kubernetes\\.io/load-balancer-attributes"
+    value = "access_logs.s3.enabled=true,access_logs.s3.bucket=${var.alb_logs_s3_bucket}"
+  },
   {
     name  = "persistence.storageClass"
     value = "gp3"

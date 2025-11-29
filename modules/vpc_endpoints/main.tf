@@ -1,30 +1,51 @@
-# here we are declaring which AWS services we want to access with our private subnets - no internet
-#Each key (s3, dynamodb, sqs, etc.) corresponds to one AWS service endpoint.
-#You can include or remove any of them — there’s no requirement to have all.
+# VPC Endpoints allow private subnets to access AWS services (S3, DynamoDB) without going through NAT Gateway
+# Gateway endpoints (S3, DynamoDB) are FREE and save NAT Gateway data transfer costs
+# This is especially useful for accessing S3 buckets (terraform state, ALB logs) from private subnets
+# Gateway endpoints work at the route table level - traffic is automatically routed through the endpoint
+
+# VPC endpoint policy for S3 - restricts access to specific buckets (optional, for security)
+data "aws_iam_policy_document" "s3_endpoint_policy" {
+  count = length(var.s3_bucket_arns) > 0 ? 1 : 0
+
+  statement {
+    effect = "Allow"
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:ListBucket"
+    ]
+    resources = var.s3_bucket_arns
+  }
+}
 
 module "vpc_endpoints" {
   source = "terraform-aws-modules/vpc/aws//modules/vpc-endpoints"
 
-  vpc_id             = var.vpc_id
-  security_group_id = var.security_group_id
+  vpc_id = var.vpc_id
+  # Gateway endpoints (S3, DynamoDB) don't need security_group_id
+  # Only interface endpoints need security groups
 
-  endpoints = {# the endpoints are intended for all two S3 buckets. It is a general declaration
+  endpoints = {
     s3 = {
-      service = "s3"
-      service_type = "Gateway"
-      route_table_ids = [var.route_table_id] # ???????
-      policy = data.aws_iam_policy_document.s3.json
-      tags = { Name = "s3-vpc-endpoint" }
+      service         = "s3"
+      service_type    = "Gateway"
+      route_table_ids = var.private_route_table_ids # All private subnet route tables
+      # Policy is optional - if provided, restricts which S3 resources can be accessed
+      policy = length(var.s3_bucket_arns) > 0 ? data.aws_iam_policy_document.s3_endpoint_policy[0].json : null
+      tags   = { Name = "s3-vpc-endpoint" }
     }
     dynamodb = {
-      service = "dynamodb"
-      service_type = "Gateway"
-      route_table_ids = [var.route_table_id] # ???????
+      service         = "dynamodb"
+      service_type    = "Gateway"
+      route_table_ids = var.private_route_table_ids # All private subnet route tables
+      # DynamoDB endpoint doesn't need a policy for basic access
       tags = { Name = "dynamodb-vpc-endpoint" }
     }
   }
-  
-  
-  
+
   tags = var.tags
 }
