@@ -1,10 +1,7 @@
-output "eks_cluster_name" {
-    description = "Name of the EKS cluster"
-    value = module.eks.cluster_name
-}
+# taken from https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest?tab=outputs
 
 output "cluster_name" {
-    description = "Name of the EKS cluster (alias for eks_cluster_name)"
+    description = "Name of the EKS cluster"
     value = module.eks.cluster_name
 }
 

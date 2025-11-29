@@ -5,6 +5,10 @@ output "state_bucket_name" {
   value = aws_s3_bucket.terraform_state.bucket
 }
 
-output "dynamodb_lock_table" {
-  value = aws_dynamodb_table.terraform_state_lock.name
+output "dynamodb_table_id" {
+  value = aws_dynamodb_table.terraform_state_lock.id
+}
+
+output "dynamodb_table_arn" {
+  value = aws_dynamodb_table.terraform_state_lock.arn
 }

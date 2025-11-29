@@ -1,6 +1,6 @@
 module "vpc" {  #  this module downloads terraform vpc module from the registry and creates a vpc with the given parameters
   source = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.0"
+  version = "6.5.1"
 
   name = var.vpc_name
   cidr = var.vpc_cidr
