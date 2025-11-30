@@ -73,6 +73,11 @@ variable "s3_alb_logs_bucket_name" {
 
 #modules/monitoring/alarms/ alarms variables
 
+variable "cpu_alarm_namespace" {
+  description = "The namespace of the CPU alarm"
+  type        = string
+}
+
 variable "cpu_alarm_name" {
   description = "The name of the CPU alarm"
   type        = string

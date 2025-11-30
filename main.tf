@@ -119,7 +119,7 @@ resource "helm_release" "aws_load_balancer_controller" { #called helm chart to i
     },
     {
       name  = "serviceAccount.create"
-      value = "false"
+      value = "true"
     },
     {
       name  = "serviceAccount.name"
@@ -202,9 +202,9 @@ module "wordpress" {
     kubernetes = kubernetes
   }
 
-  namespace    = "wordpress"
-  cluster_name = module.eks.cluster_name
-  domain_name  = var.wordpress_domain # this domain_name variable ( which is in defined in tfvars and variables.tf) is passed to the wordpress module and then used in modules/wordpress/outputs.tf
+  namespace          = "wordpress"
+  cluster_name       = module.eks.cluster_name
+  domain_name        = var.wordpress_domain                   # this domain_name variable ( which is in defined in tfvars and variables.tf) is passed to the wordpress module and then used in modules/wordpress/outputs.tf
   alb_logs_s3_bucket = module.s3_bucket_for_logs.s3_bucket_id # Enable ALB access logs to S3
 }
 
@@ -222,6 +222,7 @@ module "cpu_alarm" {
   source  = "terraform-aws-modules/cloudwatch/aws//modules/metric-alarm"
   version = "5.7.2" #belongs where you call source from the intenet
   #bellow are the variables for the alarm, comes from terraform.tfvars in monitoring section
+  namespace           = var.cpu_alarm_namespace #must be unique globally and mandatory for the alarm to work
   alarm_name          = var.cpu_alarm_name
   alarm_description   = var.cpu_alarm_description
   comparison_operator = var.cpu_comparison_operator
@@ -230,7 +231,7 @@ module "cpu_alarm" {
   evaluation_periods  = var.cpu_evaluation_periods # the minutes for threshold to be met
   threshold           = var.cpu_threshold          #triggers when over 80% CPU usage for more than 2 minutes
   statistic           = var.cpu_statistic          #uses an average value of the metric (the 80% in 2 minutes) and compares it to the threshold
-  dimensions = {#this has no place into root/main.tf because it is a submodule
+  dimensions = {                                   #this has no place into root/main.tf because it is a submodule
     ClusterName = var.eks_cluster_name
   }
 
@@ -238,7 +239,7 @@ module "cpu_alarm" {
   #Whenever the alarm status changes to ALARM
   #CloudWatch sends a JSON event → SNS
   #SNS forwards event to subscribed endpoints (email, etc.)
-  alarm_actions = [module.sns.topic_arn] 
+  alarm_actions = [module.sns.topic_arn]
 }
 
 module "s3_bucket_for_logs" {
@@ -270,8 +271,8 @@ module "vpc_endpoints" {
 }
 
 module "sns" {
-  source = "./modules/monitoring/sns"
+  source   = "./modules/monitoring/sns"
   sns_name = var.sns_name
-  email = var.email
-  tags = var.tags
+  email    = var.email
+  tags     = var.tags
 }
