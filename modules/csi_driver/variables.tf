@@ -13,8 +13,5 @@ variable "oidc_provider_url" {
   type        = string
 }
 
-variable "addon_version" {
-  description = "Version of the aws-ebs-csi-driver add-on"
-  type        = string
-  default     = "v1.51.1-eksbuild.1"
-}
+# addon_version removed - CSI driver will be deployed via ArgoCD using Helm chart
+# This module now only creates the IAM role required for the CSI driver

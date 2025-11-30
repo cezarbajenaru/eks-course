@@ -1,3 +1,4 @@
+# the csi driver is installed after the eks module exists. This provisions EBS volumes for the EKS cluster to store it's data and logs - Persistent Volumes
 data "aws_iam_policy_document" "assume_role" {
   statement {
     effect = "Allow"
@@ -25,10 +26,6 @@ resource "aws_iam_role_policy_attachment" "ebs_csi_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 
-resource "aws_eks_addon" "ebs_csi_driver" {
-  cluster_name             = var.cluster_name# CSI driver is the only module that uses the cluster_name variable which is an output of the EKS module because it is installed after the EKS module exists
-  addon_name               = "aws-ebs-csi-driver"
-  addon_version            = var.addon_version
-  service_account_role_arn = aws_iam_role.ebs_csi_driver_role.arn
-  resolve_conflicts_on_update        = "OVERWRITE"
-}
+# CSI Driver will be deployed via ArgoCD using Helm chart
+# This module only creates the IAM role required for the CSI driver
+# The Helm deployment will be managed by ArgoCD

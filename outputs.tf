@@ -94,3 +94,14 @@ output "s3_bucket_arn" {
 output "topic_arn" {
   value = module.sns.topic_arn
 }
+
+# IAM Role ARNs for ArgoCD deployments
+output "alb_irsa_role_arn" {
+  description = "IAM role ARN for ALB Controller (for ArgoCD Helm chart)"
+  value       = module.alb_irsa.alb_irsa_role_arn
+}
+
+output "csi_driver_role_arn" {
+  description = "IAM role ARN for EBS CSI Driver (for ArgoCD Helm chart)"
+  value       = module.csi_driver_irsa.csi_driver_role_arn
+}
