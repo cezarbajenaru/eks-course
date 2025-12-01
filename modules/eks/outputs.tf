@@ -23,3 +23,8 @@ output "oidc_provider_arn" {
     description = "The ARN of the OIDC provider for the EKS cluster"
     value = module.eks.oidc_provider_arn
 }
+
+output "node_security_group_id" {
+  description = "Security group ID attached to the EKS nodes"
+  value       = module.eks.node_security_group_id
+}

@@ -34,8 +34,9 @@ module "vpc_endpoints" {
       service         = "s3"
       service_type    = "Gateway"
       route_table_ids = var.private_route_table_ids # All private subnet route tables
-      # Policy is optional - if provided, restricts which S3 resources can be accessed
-      policy = length(var.s3_bucket_arns) > 0 ? data.aws_iam_policy_document.s3_endpoint_policy[0].json : null
+      # Policy set to null to allow ECR image layer access (prod-*-starport-layer-bucket)
+      # Nodes need access to ECR's S3 buckets for image pulls
+      policy = null
       tags   = { Name = "s3-vpc-endpoint" }
     }
     dynamodb = {
@@ -44,6 +45,22 @@ module "vpc_endpoints" {
       route_table_ids = var.private_route_table_ids # All private subnet route tables
       # DynamoDB endpoint doesn't need a policy for basic access
       tags = { Name = "dynamodb-vpc-endpoint" }
+    }
+    ecr_api = {
+      service             = "ecr.api"
+      service_type        = "Interface"
+      private_dns_enabled = true
+      subnet_ids          = var.private_subnet_ids
+      security_group_ids  = [var.vpc_endpoint_sg_id]
+      tags                = { Name = "ecr-api-vpc-endpoint" }
+    }
+    ecr_dkr = {
+      service             = "ecr.dkr"
+      service_type        = "Interface"
+      private_dns_enabled = true
+      subnet_ids          = var.private_subnet_ids
+      security_group_ids  = [var.vpc_endpoint_sg_id]
+      tags                = { Name = "ecr-dkr-vpc-endpoint" }
     }
   }
 

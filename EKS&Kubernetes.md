@@ -2554,10 +2554,49 @@ Public access (e.g., website) needs → ALB in public subnet.
 
 &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
+ aws eks update-kubeconfig   --region eu-central-1   --name plasticmemory-eks-cluster
+
+aws eks list-nodegroups \
+  --cluster-name plasticmemory-eks \
+  --region eu-central-1
 
 
+#list nodegroup name ( not a cluster id )
+aws eks list-nodegroups \
+  --cluster-name plasticmemory-eks-cluster \
+  --region eu-central-1
 
 
+ aws eks describe-nodegroup   --cluster-name plasticmemory-eks-cluster   --nodegroup-name ng1-20251201155253399700000010   --region eu-central-1   --query 'nodegroup.{Status:status,Health:health.status,Issue:health.issues}'
 
 
+#list the instances ID (ec2)
+ kubectl get nodes -o jsonpath='{range .items[*]}{.spec.providerID}{"\n"}{end}'
 
+
+kubectl get pods -n kube-system -o wide
+
+kubectl get svc -A
+
+aws ec2 describe-vpc-endpoints --filter 'Name=vpc-id,Values=<your-vpc-id>'
+
+aws eks describe-nodegroup \
+  --cluster-name plasticmemory-eks-cluster \
+  --nodegroup-name ng1-20251201155253399700000010 \
+  --region eu-central-1 \
+  --query 'nodegroup.{Status:status,Health:health.status,Issue:health.issues}'
+
+#describe EC2's with tags and IP
+  aws ec2 describe-instances \
+  --instance-ids $(kubectl get nodes -o jsonpath='{range .items[*]}{.spec.providerID}{" "}{end}' | sed 's|aws:///[^/]*/||g') \
+  --query "Reservations[].Instances[].{ID:InstanceId,Type:InstanceType,AZ:Placement.AvailabilityZone,PrivateIP:PrivateIpAddress,SG:SecurityGroups[*].GroupName}"
+  --output table
+
+
+```
+Cluster: plasticmemory-eks-cluster
+    └── Node Group: ng1-20251201155253399700000010
+            ├── EC2: ip-10-0-1-150
+            └── EC2: ip-10-0-2-48
+
+```

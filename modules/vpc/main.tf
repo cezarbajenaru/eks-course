@@ -12,7 +12,12 @@ module "vpc" {  #  this module downloads terraform vpc module from the registry 
   enable_nat_gateway  = var.vpc_enable_nat_gateway
   single_nat_gateway  = var.vpc_single_nat_gateway # because we have only one availability zone in this project
   reuse_nat_ips       = var.vpc_reuse_nat_ips                   # Skip creation of EIPs for the NAT Gateways
-  external_nat_ip_ids = var.vpc_external_nat_ip_ids       # IPs specified here as input to the module
+  external_nat_ip_ids = var.vpc_external_nat_ip_ids 
+
+
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
 
 #used for ALB to be able to find the subnets - find them in variables.tf(where the inputs are defined)
 #subnets tags just like AWS wants them to be named with the correct naming convention and values

@@ -19,3 +19,13 @@ variable "tags" {
   description = "Tags to apply to VPC endpoints"
   default     = {}
 }
+
+variable "private_subnet_ids" {
+  type        = list(string)
+  description = "Private subnet IDs for interface endpoints"
+}
+
+variable "vpc_endpoint_sg_id" {
+  type        = string
+  description = "Security group ID for VPC endpoints (allows HTTPS from nodes)"
+}

@@ -41,31 +41,36 @@ resource "aws_eip" "nat" {
 
 
 module "vpc" {
-  source   = "./modules/vpc"
-  vpc_name = var.vpc_name
-  vpc_cidr = var.vpc_cidr
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "6.5.1"
 
-  vpc_azs             = var.vpc_azs
-  vpc_private_subnets = var.vpc_private_subnets
-  vpc_public_subnets  = var.vpc_public_subnets
+  name = var.vpc_name
+  cidr = var.vpc_cidr
 
+  azs             = var.vpc_azs
+  private_subnets = var.vpc_private_subnets
+  public_subnets  = var.vpc_public_subnets
 
-  vpc_enable_nat_gateway = var.vpc_enable_nat_gateway
-  vpc_single_nat_gateway = var.vpc_single_nat_gateway # because we have only one availability zone
-  vpc_reuse_nat_ips      = var.vpc_reuse_nat_ips      # Skip creation of EIPs for the NAT Gateways
+  enable_nat_gateway  = var.vpc_enable_nat_gateway
+  single_nat_gateway  = var.vpc_single_nat_gateway
+  reuse_nat_ips       = var.vpc_reuse_nat_ips
+  external_nat_ip_ids = [aws_eip.nat.id]
 
-  vpc_external_nat_ip_ids = [aws_eip.nat.id] #aws_eip is AWS resource name, nat is the name I gave to the resource and id is the output of AWS resource
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
+  # Subnet tags for ALB Controller to find subnets
+  public_subnet_tags = {
+    "kubernetes.io/role/elb"                        = "1"
+    "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
+  }
 
-  ingress_cidr_blocks = var.ingress_cidr_blocks
-  vpc_tags            = var.vpc_tags
+  private_subnet_tags = {
+    "kubernetes.io/role/internal-elb"               = "1"
+    "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
+  }
 
-  # Pass eks_cluster_name from tfvars (not from EKS output to avoid circular dependency)
-  # VPC needs to be created before EKS, but subnet tags need cluster_name
-  eks_cluster_name = var.eks_cluster_name
-
-
-
+  tags = var.vpc_tags
 }
 
 #security group module
@@ -93,6 +98,34 @@ module "eks" {
   eks_managed_node_groups = var.eks_managed_node_groups
   tags                    = var.tags
 
+}
+
+# Security group for VPC endpoints (ECR interface endpoints)
+# Allows HTTPS traffic from EKS nodes to VPC endpoints
+resource "aws_security_group" "vpc_endpoints" {
+  name        = "${var.eks_cluster_name}-vpc-endpoints-sg"
+  description = "Security group for VPC endpoints - allows HTTPS from EKS nodes"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description     = "HTTPS from EKS nodes"
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [module.eks.node_security_group_id]
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.eks_cluster_name}-vpc-endpoints-sg"
+  })
 }
 
 ### IAM Roles for Service Accounts (IRSA) - Required for ALB Controller and CSI Driver ###
@@ -166,14 +199,12 @@ module "vpc_endpoints" {
 
   vpc_id                  = module.vpc.vpc_id
   private_route_table_ids = module.vpc.private_route_table_ids
+  private_subnet_ids      = module.vpc.private_subnets
+  vpc_endpoint_sg_id      = aws_security_group.vpc_endpoints.id
 
   # S3 bucket ARNs for endpoint policy (terraform state bucket + ALB logs bucket)
-  s3_bucket_arns = [
-    "arn:aws:s3:::plastic-memory-terraform-state",
-    "arn:aws:s3:::plastic-memory-terraform-state/*",
-    module.s3_bucket_for_logs.s3_bucket_arn,
-    "${module.s3_bucket_for_logs.s3_bucket_arn}/*"
-  ]
+  # Note: S3 endpoint policy is set to null to allow ECR image layer access
+  s3_bucket_arns = []
 
   tags = var.tags
 }
